@@ -2,15 +2,18 @@ import { calculateThermalSeries } from "./thermalModel";
 import { detectExcursions } from "./excursionDetector";
 
 /**
- * Scenario Engine
- * Evaluates What-If variations (additional delays, ambient temperature surges,
- * cooling system interruptions) against the baseline route simulation.
+ * Server Scenario Engine
+ * Evaluates What-If variations against baseline.
  */
 
 export function runScenarioSimulation({
   shipment,
   route,
   scenario = {}
+}: {
+  shipment: any;
+  route: any;
+  scenario?: any;
 }) {
   const limits = shipment.temperatureLimits || { minC: 2.0, maxC: 8.0 };
 
@@ -77,7 +80,6 @@ export function runScenarioSimulation({
     modelVersion: "demo-0.1"
   };
 
-  // Plain-English hedged explanation
   let explanation = "Under these simulated model assumptions, thermal behaviour remains within configured tolerances.";
   if (modifiedMetrics.constraintStatus === "fails") {
     explanation = `Under these simulated assumptions, an additional ${extraDelayMin}m delay and ${ambientC}°C ambient conditions elevate the peak temperature to ${modifiedResult.maxC}°C, resulting in approximately ${modifiedResult.minutesOutOfRange} minutes outside permitted limits.`;

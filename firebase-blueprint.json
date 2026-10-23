@@ -1,0 +1,94 @@
+{
+  "entities": {
+    "Shipment": {
+      "title": "Shipment",
+      "description": "Temperature-sensitive shipment transport record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "origin": { "type": "string" },
+        "destination": { "type": "string" },
+        "departureDateTime": { "type": "string" },
+        "maxTransitHours": { "type": "number" },
+        "temperatureLimits": { "type": "object" },
+        "container": { "type": "object" },
+        "status": { "type": "string" },
+        "selectedRouteId": { "type": "string" },
+        "assignedDriver": { "type": "string" },
+        "analysis": { "type": "object" },
+        "activity": { "type": "array" },
+        "isDemoRecord": { "type": "boolean" },
+        "source": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "origin", "destination", "status"]
+    },
+    "Analysis": {
+      "title": "Analysis",
+      "description": "Simulated route temperature evaluation",
+      "type": "object",
+      "properties": {
+        "shipmentId": { "type": "string" },
+        "results": { "type": "object" },
+        "ranking": { "type": "object" },
+        "inputHash": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["shipmentId", "results", "ranking"]
+    },
+    "Scenario": {
+      "title": "Scenario",
+      "description": "What-If simulation run for delay and ambient variations",
+      "type": "object",
+      "properties": {
+        "shipmentId": { "type": "string" },
+        "routeId": { "type": "string" },
+        "inputs": { "type": "object" },
+        "baseline": { "type": "object" },
+        "modified": { "type": "object" },
+        "explanation": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["shipmentId", "routeId", "inputs"]
+    },
+    "Incident": {
+      "title": "Incident",
+      "description": "Simulated thermal excursion or delay incident",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "shipmentId": { "type": "string" },
+        "routeId": { "type": "string" },
+        "severity": { "type": "string" },
+        "description": { "type": "string" },
+        "peakC": { "type": "number" },
+        "durationMin": { "type": "number" },
+        "provenance": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "shipmentId", "severity", "description"]
+    }
+  },
+  "firestore": {
+    "/shipments/{shipmentId}": {
+      "schema": { "$ref": "#/entities/Shipment" },
+      "description": "Cold-chain shipment documents"
+    },
+    "/analyses/{analysisId}": {
+      "schema": { "$ref": "#/entities/Analysis" },
+      "description": "Stored route simulation evaluations"
+    },
+    "/scenarios/{scenarioId}": {
+      "schema": { "$ref": "#/entities/Scenario" },
+      "description": "Recorded What-If scenario evaluations"
+    },
+    "/incidents/{incidentId}": {
+      "schema": { "$ref": "#/entities/Incident" },
+      "description": "Simulated thermal breach incidents"
+    }
+  }
+}

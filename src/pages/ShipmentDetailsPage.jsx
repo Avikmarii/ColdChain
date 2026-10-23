@@ -17,6 +17,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { useShipments } from "../context/ShipmentContext";
+import { api } from "../services/api";
 import StatusBadge from "../components/common/StatusBadge";
 import CopyId from "../components/common/CopyId";
 import Modal from "../components/common/Modal";
@@ -26,10 +27,12 @@ import NotFound from "./NotFound";
 export default function ShipmentDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getShipmentById, showToast } = useShipments();
+  const { getShipmentById, showToast, dispatch } = useShipments();
   const shipment = getShipmentById(id);
 
   const [showDriverModal, setShowDriverModal] = useState(false);
+  const [driverNameInput, setDriverNameInput] = useState("Demo Fleet Fleet-101");
+  const [isAssigning, setIsAssigning] = useState(false);
 
   if (!shipment) {
     return (
@@ -285,30 +288,67 @@ export default function ShipmentDetailsPage() {
         </div>
       </div>
 
-      {/* Assign Driver Modal (Demo Only) */}
+      {/* Assign Driver Modal */}
       <Modal
         isOpen={showDriverModal}
         onClose={() => setShowDriverModal(false)}
         title="Assign Driver"
       >
         <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-          <AlertTriangle size={24} color="var(--warning)" style={{ flexShrink: 0 }} />
+          <AlertTriangle size={24} color="var(--brand-blue)" style={{ flexShrink: 0 }} />
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>
-              Demo only: no driver system connected
+              Assign Demo Driver (Simulated Dispatch)
             </div>
             <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>
               Driver telematics and dispatch interfaces are simulated in this workbench environment. External IoT driver assignment is decoupled from the route simulation model.
             </p>
           </div>
         </div>
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+
+        <div style={{ marginBottom: 18 }}>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+            Driver / Unit Identifier
+          </label>
+          <input
+            type="text"
+            className="cc-input"
+            value={driverNameInput}
+            onChange={(e) => setDriverNameInput(e.target.value)}
+            placeholder="e.g. Demo Fleet Fleet-101"
+            maxLength={60}
+          />
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+          <button
+            type="button"
+            className="cc-btn cc-btn-secondary"
+            onClick={() => setShowDriverModal(false)}
+          >
+            Cancel
+          </button>
           <button
             type="button"
             className="cc-btn cc-btn-primary"
-            onClick={() => setShowDriverModal(false)}
+            disabled={isAssigning || !driverNameInput.trim()}
+            onClick={async () => {
+              setIsAssigning(true);
+              try {
+                const res = await api.assignDriver(shipment.id, driverNameInput.trim());
+                if (res.data) {
+                  dispatch({ type: "UPSERT_LOCAL_SHIPMENT", payload: res.data });
+                }
+                showToast("Driver Assigned", `Assigned "${driverNameInput.trim()}" to shipment`, "success");
+                setShowDriverModal(false);
+              } catch (err) {
+                showToast("Assignment Failed", err.message || "Failed to assign driver", "error");
+              } finally {
+                setIsAssigning(false);
+              }
+            }}
           >
-            Acknowledge
+            {isAssigning ? "Assigning..." : "Assign Demo Driver"}
           </button>
         </div>
       </Modal>

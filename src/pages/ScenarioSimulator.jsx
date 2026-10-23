@@ -1,14 +1,15 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Sliders, Play, RotateCcw } from "lucide-react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import { useShipments } from "../context/ShipmentContext";
 import { getRoutesForPair } from "../data/demoRoutes";
-import { runScenarioSimulation } from "../engine";
+import { api } from "../services/api";
 import ScenarioControls from "../components/scenarios/ScenarioControls";
 import ScenarioComparison from "../components/scenarios/ScenarioComparison";
 import StatusBadge from "../components/common/StatusBadge";
 import CopyId from "../components/common/CopyId";
 import ProvenanceBanner from "../components/common/ProvenanceBanner";
+import AttentiveFace from "../components/common/AttentiveFace";
 import NotFound from "./NotFound";
 
 export default function ScenarioSimulator() {
@@ -37,33 +38,73 @@ export default function ScenarioSimulator() {
     insulationPreset: shipment.container?.insulation || "Moderate"
   });
 
+  const [simulationResult, setSimulationResult] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const selectedRoute = routes.find((r) => r.id === selectedRouteId) || routes[0];
 
-  // Evaluate simulation instantly or on run
-  const simulationResult = useMemo(() => {
-    return runScenarioSimulation({
-      shipment,
-      route: selectedRoute,
-      scenario
-    });
-  }, [shipment, selectedRoute, scenario]);
+  const runSimulation = useCallback(async (inputs, routeId) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await api.runScenario(shipment.id, {
+        routeId: routeId || selectedRouteId,
+        extraDelayMin: inputs.extraDelayMin,
+        ambientC: inputs.ambientC,
+        isInterrupted: inputs.isInterrupted,
+        coolingInterruptionMin: inputs.coolingInterruptionMin,
+        insulationPreset: inputs.insulationPreset
+      });
 
+      if (res.data) {
+        setSimulationResult({
+          baseline: res.data.baseline,
+          modified: res.data.modified,
+          explanation: res.data.explanation
+        });
+      }
+      setIsLoading(false);
+    } catch (err) {
+      setIsLoading(false);
+      setError(err.message || "Failed to execute scenario simulation on backend.");
+    }
+  }, [shipment.id, selectedRouteId]);
+
+  // Run on mount or when route changes
+  useEffect(() => {
+    runSimulation(scenario, selectedRouteId);
+  }, [selectedRouteId]);
+
+  // Debounced run when controls change
+  const debounceTimerRef = useRef(null);
   const handleScenarioChange = (field, value) => {
-    setScenario((prev) => ({ ...prev, [field]: value }));
+    const nextScenario = { ...scenario, [field]: value };
+    setScenario(nextScenario);
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      runSimulation(nextScenario, selectedRouteId);
+    }, 400);
   };
 
   const handleReset = () => {
-    setScenario({
+    const resetScenario = {
       extraDelayMin: 0,
       ambientC: 32,
       isInterrupted: false,
       coolingInterruptionMin: 0,
       insulationPreset: shipment.container?.insulation || "Moderate"
-    });
+    };
+    setScenario(resetScenario);
+    runSimulation(resetScenario, selectedRouteId);
     showToast("Scenario Reset", "Restored standard baseline model assumptions", "info");
   };
 
   const handleRun = () => {
+    runSimulation(scenario, selectedRouteId);
     showToast(
       "Scenario Simulated",
       `Evaluated ${selectedRoute.name} with ${scenario.extraDelayMin}m delay and ${scenario.ambientC}°C ambient.`,
@@ -130,12 +171,68 @@ export default function ScenarioSimulator() {
         />
 
         {/* Right Column: Comparison Results */}
-        <ScenarioComparison
-          baselineResult={simulationResult.baseline}
-          modifiedResult={simulationResult.modified}
-          explanation={simulationResult.explanation}
-          limits={shipment.temperatureLimits}
-        />
+        {isLoading && !simulationResult ? (
+          <div className="cc-card" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div className="cc-skeleton" style={{ height: 120 }} />
+            <div className="cc-skeleton" style={{ height: 320 }} />
+          </div>
+        ) : error && !simulationResult ? (
+          <div
+            className="cc-card"
+            style={{
+              textAlign: "center",
+              padding: "40px 20px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center"
+            }}
+          >
+            <AttentiveFace width={120} height={150} />
+            <h3 style={{ marginTop: 14, color: "var(--danger)" }}>Simulation Failed</h3>
+            <p style={{ color: "var(--text-secondary)", marginTop: 4, fontSize: 13, maxWidth: 360 }}>
+              {error}
+            </p>
+            <button
+              type="button"
+              className="cc-btn cc-btn-primary"
+              onClick={() => runSimulation(scenario, selectedRouteId)}
+              style={{ marginTop: 14 }}
+            >
+              <RefreshCw size={14} />
+              <span>Retry Scenario</span>
+            </button>
+          </div>
+        ) : simulationResult ? (
+          <div style={{ position: "relative" }}>
+            {isLoading && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  zIndex: 10,
+                  background: "rgba(255, 255, 255, 0.9)",
+                  borderRadius: "var(--radius-sm)",
+                  padding: "4px 8px",
+                  fontSize: 11,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  boxShadow: "var(--shadow-sm)"
+                }}
+              >
+                <RefreshCw size={12} className="animate-spin" />
+                <span>Simulating...</span>
+              </div>
+            )}
+            <ScenarioComparison
+              baselineResult={simulationResult.baseline}
+              modifiedResult={simulationResult.modified}
+              explanation={simulationResult.explanation}
+              limits={shipment.temperatureLimits}
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   );

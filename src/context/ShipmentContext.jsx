@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useReducer, useEffect } from "react";
-import { SEED_SHIPMENTS } from "../data/demoShipments";
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from "react";
+import { api, ApiServiceError } from "../services/api";
 
-const STORAGE_KEY = "coldchain:v1";
+const SETTINGS_KEY = "coldchain:settings:v1";
+const DRAFT_KEY = "coldchain:formDraft:v1";
 
 const initialSettings = {
   brandLabel: "ColdChain Intelligence",
@@ -9,46 +10,71 @@ const initialSettings = {
   reduceMotion: false
 };
 
+function loadStoredSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    return raw ? { ...initialSettings, ...JSON.parse(raw) } : initialSettings;
+  } catch {
+    return initialSettings;
+  }
+}
+
+function loadStoredDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 const initialState = {
-  shipments: SEED_SHIPMENTS,
-  formDraft: null,
-  settings: initialSettings,
+  shipments: [],
+  isLoading: true,
+  error: null,
+  isBackendUnavailable: false,
+  formDraft: loadStoredDraft(),
+  settings: loadStoredSettings(),
   toasts: [],
   activeSearchQuery: ""
 };
 
-function loadStoredState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return initialState;
-    const parsed = JSON.parse(raw);
-    return {
-      ...initialState,
-      shipments: Array.isArray(parsed.shipments) && parsed.shipments.length > 0 ? parsed.shipments : SEED_SHIPMENTS,
-      settings: { ...initialSettings, ...(parsed.settings || {}) },
-      formDraft: parsed.formDraft || null
-    };
-  } catch (err) {
-    console.warn("Error loading stored ColdChain state, falling back to seeds:", err);
-    return initialState;
-  }
-}
-
 function shipmentReducer(state, action) {
   switch (action.type) {
-    case "SET_SHIPMENTS":
-      return { ...state, shipments: action.payload };
+    case "FETCH_START":
+      return { ...state, isLoading: true, error: null, isBackendUnavailable: false };
 
-    case "ADD_SHIPMENT": {
-      const nextShipments = [action.payload, ...state.shipments];
-      return { ...state, shipments: nextShipments, formDraft: null };
-    }
+    case "FETCH_SUCCESS":
+      return {
+        ...state,
+        isLoading: false,
+        error: null,
+        isBackendUnavailable: false,
+        shipments: action.payload
+      };
 
-    case "UPDATE_SHIPMENT": {
+    case "FETCH_ERROR":
+      return {
+        ...state,
+        isLoading: false,
+        error: action.payload.message,
+        isBackendUnavailable: Boolean(action.payload.isBackendUnavailable)
+      };
+
+    case "UPSERT_LOCAL_SHIPMENT": {
       const updated = action.payload;
-      const nextShipments = state.shipments.map(s => (s.id === updated.id ? updated : s));
-      return { ...state, shipments: nextShipments };
+      const exists = state.shipments.some((s) => s.id === updated.id);
+      const next = exists
+        ? state.shipments.map((s) => (s.id === updated.id ? updated : s))
+        : [updated, ...state.shipments];
+      return { ...state, shipments: next };
     }
+
+    case "REMOVE_LOCAL_SHIPMENT":
+      return {
+        ...state,
+        shipments: state.shipments.filter((s) => s.id !== action.payload)
+      };
 
     case "SAVE_FORM_DRAFT":
       return { ...state, formDraft: action.payload };
@@ -61,27 +87,14 @@ function shipmentReducer(state, action) {
       return { ...state, settings: nextSettings };
     }
 
-    case "RESET_DEMO_DATA":
-      return {
-        ...state,
-        shipments: SEED_SHIPMENTS,
-        formDraft: null
-      };
-
-    case "REMOVE_IMPORTED_RECORDS": {
-      const filtered = state.shipments.filter(s => s.source !== "imported");
-      return { ...state, shipments: filtered };
-    }
-
     case "ADD_TOAST": {
       const newToast = {
         id: Date.now() + Math.random().toString(36).substr(2, 5),
         title: action.payload.title,
         message: action.payload.message || "",
-        type: action.payload.type || "info", // "info", "success", "warning", "error"
+        type: action.payload.type || "info",
         duration: action.payload.duration || 4000
       };
-      // Keep at most 2 toasts visible as required
       const sliced = state.toasts.slice(-1);
       return { ...state, toasts: [...sliced, newToast] };
     }
@@ -89,7 +102,7 @@ function shipmentReducer(state, action) {
     case "REMOVE_TOAST":
       return {
         ...state,
-        toasts: state.toasts.filter(t => t.id !== action.payload)
+        toasts: state.toasts.filter((t) => t.id !== action.payload)
       };
 
     case "SET_SEARCH_QUERY":
@@ -103,23 +116,30 @@ function shipmentReducer(state, action) {
 const ShipmentContext = createContext(null);
 
 export function ShipmentProvider({ children }) {
-  const [state, dispatch] = useReducer(shipmentReducer, null, loadStoredState);
+  const [state, dispatch] = useReducer(shipmentReducer, initialState);
 
-  // Sync to localStorage
+  // Sync settings and form draft to localStorage (Requirement 3)
   useEffect(() => {
     try {
-      const toSave = {
-        shipments: state.shipments,
-        settings: state.settings,
-        formDraft: state.formDraft
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
-    } catch (err) {
-      console.warn("Failed to persist ColdChain state to localStorage:", err);
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+    } catch (e) {
+      console.warn("Could not persist settings to localStorage", e);
     }
-  }, [state.shipments, state.settings, state.formDraft]);
+  }, [state.settings]);
 
-  // Sync reduced motion override with document root
+  useEffect(() => {
+    try {
+      if (state.formDraft) {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(state.formDraft));
+      } else {
+        localStorage.removeItem(DRAFT_KEY);
+      }
+    } catch (e) {
+      console.warn("Could not persist form draft to localStorage", e);
+    }
+  }, [state.formDraft]);
+
+  // Sync reduced motion
   useEffect(() => {
     if (state.settings.reduceMotion) {
       document.documentElement.classList.add("reduce-motion");
@@ -128,7 +148,28 @@ export function ShipmentProvider({ children }) {
     }
   }, [state.settings.reduceMotion]);
 
-  // Toast dispatch helpers
+  // Fetch shipments from server
+  const refreshShipments = useCallback(async () => {
+    dispatch({ type: "FETCH_START" });
+    try {
+      const res = await api.getShipments();
+      dispatch({ type: "FETCH_SUCCESS", payload: res.data || [] });
+    } catch (err) {
+      dispatch({
+        type: "FETCH_ERROR",
+        payload: {
+          message: err.message || "Failed to load shipments from backend.",
+          isBackendUnavailable: err.isBackendUnavailable || false
+        }
+      });
+    }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    refreshShipments();
+  }, [refreshShipments]);
+
   const showToast = (title, message = "", type = "info", duration = 4000) => {
     dispatch({
       type: "ADD_TOAST",
@@ -137,13 +178,14 @@ export function ShipmentProvider({ children }) {
   };
 
   const getShipmentById = (id) => {
-    return state.shipments.find(s => s.id === id) || null;
+    return state.shipments.find((s) => s.id === id) || null;
   };
 
   const value = {
     state,
     dispatch,
     showToast,
+    refreshShipments,
     getShipmentById
   };
 

@@ -208,7 +208,6 @@ export default function ShipmentForm({ existingShipment = null }) {
     }
 
     return {
-      id: shipmentId,
       name: formData.name.trim(),
       category: formData.category,
       description: formData.description.trim(),
@@ -229,19 +228,13 @@ export default function ShipmentForm({ existingShipment = null }) {
         coolingSystem: formData.coolingSystem,
         notes: formData.containerNotes
       },
-      status: finalStatus,
-      selectedRouteId: existingShipment?.selectedRouteId || null,
-      assignedDriver: existingShipment?.assignedDriver || null,
-      analysis: finalAnalysis,
-      activity: activityLog,
-      isDemoRecord: existingShipment ? existingShipment.isDemoRecord : false,
-      source: existingShipment ? existingShipment.source : "user",
-      createdAt: existingShipment?.createdAt || nowIso,
-      updatedAt: nowIso
+      status
     };
   };
 
-  const handleSaveDraft = (e) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSaveDraft = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
       setErrors({ name: "A shipment name is required to save a draft" });
@@ -249,35 +242,55 @@ export default function ShipmentForm({ existingShipment = null }) {
       return;
     }
 
-    const record = buildShipmentRecord("Draft");
-    if (isEditMode) {
-      dispatch({ type: "UPDATE_SHIPMENT", payload: record });
-    } else {
-      dispatch({ type: "ADD_SHIPMENT", payload: record });
-    }
+    setIsSubmitting(true);
+    try {
+      const payload = buildShipmentRecord("Draft");
+      let res;
+      if (isEditMode) {
+        res = await api.updateShipment(existingShipment.id, payload);
+      } else {
+        res = await api.createShipment(payload);
+      }
 
-    dispatch({ type: "CLEAR_FORM_DRAFT" });
-    showToast("Draft Saved", `${record.name} (${record.id}) saved as draft`, "success");
-    navigate(`/shipments/${record.id}`);
+      const saved = res.data;
+      dispatch({ type: "UPSERT_LOCAL_SHIPMENT", payload: saved });
+      dispatch({ type: "CLEAR_FORM_DRAFT" });
+      showToast("Draft Saved", `${saved.name} (${saved.id}) saved to database as draft`, "success");
+      navigate(`/shipments/${saved.id}`);
+    } catch (err) {
+      showToast("Save Failed", err.message || "Failed to save draft to database.", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleGenerateAnalysis = (e) => {
+  const handleGenerateAnalysis = async (e) => {
     e.preventDefault();
     if (!validate()) {
       showToast("Validation Error", "Please resolve highlighted fields before proceeding", "error");
       return;
     }
 
-    const record = buildShipmentRecord(isEditMode ? existingShipment.status : "Draft");
-    if (isEditMode) {
-      dispatch({ type: "UPDATE_SHIPMENT", payload: record });
-    } else {
-      dispatch({ type: "ADD_SHIPMENT", payload: record });
-    }
+    setIsSubmitting(true);
+    try {
+      const payload = buildShipmentRecord(isEditMode ? existingShipment.status : "Draft");
+      let res;
+      if (isEditMode) {
+        res = await api.updateShipment(existingShipment.id, payload);
+      } else {
+        res = await api.createShipment(payload);
+      }
 
-    dispatch({ type: "CLEAR_FORM_DRAFT" });
-    showToast("Shipment Saved", "Opening route comparison and analysis", "success");
-    navigate(`/shipments/${record.id}/analysis`);
+      const saved = res.data;
+      dispatch({ type: "UPSERT_LOCAL_SHIPMENT", payload: saved });
+      dispatch({ type: "CLEAR_FORM_DRAFT" });
+      showToast("Shipment Saved", "Opening route comparison and analysis", "success");
+      navigate(`/shipments/${saved.id}/analysis`);
+    } catch (err) {
+      showToast("Operation Failed", err.message || "Failed to persist shipment parameters.", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

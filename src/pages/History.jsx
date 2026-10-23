@@ -14,8 +14,7 @@ import {
 } from "lucide-react";
 import { useShipments } from "../context/ShipmentContext";
 import { PRODUCT_CATEGORIES } from "../data/demoRoutes";
-import { exportShipmentsToCsv } from "../utils/exportCsv";
-import { parseAndValidateCsv } from "../utils/importCsv";
+import { api } from "../services/api";
 import ImportChest from "../components/history/ImportChest";
 import StatusBadge from "../components/common/StatusBadge";
 import CopyId from "../components/common/CopyId";
@@ -25,7 +24,7 @@ import ProvenanceBanner from "../components/common/ProvenanceBanner";
 
 export default function History() {
   const navigate = useNavigate();
-  const { state, dispatch, showToast } = useShipments();
+  const { state, showToast, refreshShipments } = useShipments();
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -62,16 +61,16 @@ export default function History() {
 
   const hasImportedRecords = state.shipments.some((s) => s.source === "imported");
 
-  const handleExportCsv = () => {
+  const handleExportCsv = async () => {
     try {
-      exportShipmentsToCsv(state.shipments);
+      await api.exportCsv();
       showToast("CSV Exported", `Downloaded ${state.shipments.length} shipment records`, "success");
     } catch (err) {
-      showToast("Export Failed", "Could not generate CSV file", "error");
+      showToast("Export Failed", err.message || "Could not generate CSV file", "error");
     }
   };
 
-  const handleFileLoaded = (fileContent, readError, onDone) => {
+  const handleFileLoaded = async (fileContent, readError, onDone) => {
     if (readError) {
       setImportFeedback({ error: readError, skippedRows: [] });
       showToast("Import Failed", readError, "error");
@@ -79,48 +78,44 @@ export default function History() {
       return;
     }
 
-    const existingIds = new Set(state.shipments.map((s) => s.id));
-    const result = parseAndValidateCsv(fileContent, existingIds);
+    try {
+      const res = await api.importCsv(fileContent);
+      const { insertedCount, skippedCount, skippedRows } = res.data || {};
+      await refreshShipments();
 
-    if (result.error) {
-      setImportFeedback({ error: result.error, skippedRows: [] });
-      showToast("Import Rejected", result.error, "error");
-      onDone?.({ success: false });
-      return;
-    }
-
-    const { importedShipments, skippedRows } = result;
-
-    if (importedShipments.length > 0) {
-      dispatch({
-        type: "SET_SHIPMENTS",
-        payload: [...importedShipments, ...state.shipments]
+      setImportFeedback({
+        error: null,
+        count: insertedCount || 0,
+        skippedRows: skippedRows || []
       });
+
+      const summaryMsg = `Imported ${insertedCount || 0} records${
+        skippedRows && skippedRows.length > 0 ? `, skipped ${skippedRows.length}` : ""
+      }`;
+
+      showToast(
+        (insertedCount || 0) > 0 ? "Import Complete" : "No Records Imported",
+        summaryMsg,
+        (insertedCount || 0) > 0 ? "success" : "warning"
+      );
+
+      onDone?.({ success: (insertedCount || 0) > 0, count: insertedCount || 0 });
+    } catch (err) {
+      setImportFeedback({ error: err.message || "Failed to import CSV", skippedRows: [] });
+      showToast("Import Rejected", err.message || "Import failed", "error");
+      onDone?.({ success: false });
     }
-
-    setImportFeedback({
-      error: null,
-      count: importedShipments.length,
-      skippedRows
-    });
-
-    const summaryMsg = `Imported ${importedShipments.length} records${
-      skippedRows.length > 0 ? `, skipped ${skippedRows.length}` : ""
-    }`;
-
-    showToast(
-      importedShipments.length > 0 ? "Import Complete" : "No Records Imported",
-      summaryMsg,
-      importedShipments.length > 0 ? "success" : "warning"
-    );
-
-    onDone?.({ success: importedShipments.length > 0, count: importedShipments.length });
   };
 
-  const handleClearImported = () => {
-    dispatch({ type: "REMOVE_IMPORTED_RECORDS" });
-    setShowClearImportedModal(false);
-    showToast("Imported Records Removed", "Cleaned external user-imported rows", "info");
+  const handleClearImported = async () => {
+    try {
+      await api.deleteImportedRecords();
+      await refreshShipments();
+      setShowClearImportedModal(false);
+      showToast("Imported Records Removed", "Cleaned external user-imported rows", "info");
+    } catch (err) {
+      showToast("Removal Failed", err.message || "Failed to remove imported records", "error");
+    }
   };
 
   const clearAllFilters = () => {

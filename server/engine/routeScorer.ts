@@ -1,12 +1,8 @@
 /**
- * Route Scorer & Ranker
- * Evaluates candidate route results against shipment constraints.
- * Strict non-negotiables: Never claims "safe" or "approved".
- * Uses honest hedged language: "meets configured limits in this simulation"
- * and "preferred under current assumptions".
+ * Server Route Scorer & Ranker
  */
 
-export function rankRoutes(results, constraints = {}) {
+export function rankRoutes(results: any[], constraints: any = {}) {
   if (!results || results.length === 0) {
     return {
       preferredRouteId: null,
@@ -16,10 +12,8 @@ export function rankRoutes(results, constraints = {}) {
     };
   }
 
-  // Filter routes that meet configured constraints in this simulation
   const compliantRoutes = results.filter((r) => r.constraintStatus === "meets");
 
-  // If no routes meet constraints:
   if (compliantRoutes.length === 0) {
     return {
       preferredRouteId: null,
@@ -33,7 +27,6 @@ export function rankRoutes(results, constraints = {}) {
     };
   }
 
-  // If compliant routes exist: sort by lowest peak temperature and risk level
   const sorted = [...compliantRoutes].sort((a, b) => {
     if (a.riskLevel === "low" && b.riskLevel !== "low") return -1;
     if (b.riskLevel === "low" && a.riskLevel !== "low") return 1;
@@ -51,7 +44,7 @@ export function rankRoutes(results, constraints = {}) {
     `Lower simulated thermal risk (${preferred.riskLevel} risk)`
   ];
 
-  const tradeoffs = [];
+  const tradeoffs: string[] = [];
   if (otherRoute) {
     const timeDiffMin = preferred.travelTimeMin - otherRoute.travelTimeMin;
     if (timeDiffMin > 0) {

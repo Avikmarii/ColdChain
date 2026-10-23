@@ -4,6 +4,8 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import Toast from "../common/Toast";
 
+import BackendUnavailableBanner from "../common/BackendUnavailableBanner";
+
 export default function AppLayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -29,6 +31,7 @@ export default function AppLayout() {
         <Topbar onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
 
         <main className="cc-content-container">
+          <BackendUnavailableBanner />
           <Outlet />
         </main>
       </div>

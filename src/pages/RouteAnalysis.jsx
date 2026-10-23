@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useShipments } from "../context/ShipmentContext";
 import { getRoutesForPair } from "../data/demoRoutes";
-import { analyzeShipmentRoutes } from "../engine";
+import { api } from "../services/api";
 import RouteMap from "../components/analysis/RouteMap";
 import RouteCard from "../components/analysis/RouteCard";
 import TemperatureChart from "../components/analysis/TemperatureChart";
@@ -49,50 +49,30 @@ export default function RouteAnalysis() {
   const activeAnalysis = shipment.analysis ? shipment.analysis[selectedRouteId] : null;
   const preferredRouteId = shipment.analysis?.ranking?.preferredRouteId || null;
 
-  const handleRunAnalysis = () => {
+  const handleRunAnalysis = async () => {
     setIsLoading(true);
     setError(null);
 
-    // Subtle 800ms simulation execution delay (under 1.2s requirement)
-    setTimeout(() => {
-      try {
-        const fullAnalysis = analyzeShipmentRoutes(shipment);
-        const newStatus = fullAnalysis.ranking.preferredRouteId ? "Recommended" : "No Feasible Route";
+    try {
+      const res = await api.runAnalysis(shipment.id);
+      const updatedShipment = res.data;
 
-        const updatedShipment = {
-          ...shipment,
-          status: newStatus,
-          selectedRouteId: fullAnalysis.ranking.preferredRouteId || selectedRouteId,
-          analysis: fullAnalysis,
-          activity: [
-            ...(shipment.activity || []),
-            {
-              at: new Date().toISOString(),
-              text: `Route simulation executed: ${newStatus}`,
-              provenance: "demo-simulated"
-            }
-          ],
-          updatedAt: new Date().toISOString()
-        };
+      dispatch({ type: "UPSERT_LOCAL_SHIPMENT", payload: updatedShipment });
+      setIsLoading(false);
 
-        dispatch({ type: "UPDATE_SHIPMENT", payload: updatedShipment });
-        setIsLoading(false);
-
-        // Auto-select preferred route if found
-        if (fullAnalysis.ranking.preferredRouteId) {
-          setSelectedRouteId(fullAnalysis.ranking.preferredRouteId);
-        }
-
-        showToast(
-          "Analysis completed",
-          `Evaluated ${routes.length} candidate corridors under model assumptions.`,
-          "success"
-        );
-      } catch (err) {
-        setIsLoading(false);
-        setError("Simulation engine encountered an evaluation error. Please retry.");
+      if (updatedShipment.analysis?.ranking?.preferredRouteId) {
+        setSelectedRouteId(updatedShipment.analysis.ranking.preferredRouteId);
       }
-    }, 800);
+
+      showToast(
+        "Analysis completed",
+        `Evaluated ${routes.length} candidate corridors under model assumptions.`,
+        "success"
+      );
+    } catch (err) {
+      setIsLoading(false);
+      setError(err.message || "Simulation engine encountered an evaluation error. Please retry.");
+    }
   };
 
   return (

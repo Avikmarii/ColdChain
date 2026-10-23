@@ -4,12 +4,15 @@ import { rankRoutes } from "./routeScorer";
 import { runScenarioSimulation } from "./scenarioEngine";
 import { getRoutesForPair } from "../data/demoRoutes";
 
-/**
- * Public Engine Boundary (Section 7)
- * UI components never compute temperatures. They call this engine API.
- */
-
-export function analyzeRoute({ shipment, route, scenario = {} }) {
+export function analyzeRoute({
+  shipment,
+  route,
+  scenario = {}
+}: {
+  shipment: any;
+  route: any;
+  scenario?: any;
+}) {
   const limits = shipment.temperatureLimits || { minC: 2.0, maxC: 8.0 };
   const extraDelayMin = Number(scenario.extraDelayMin || 0);
   const ambientC = Number(scenario.ambientC || 32);
@@ -47,14 +50,14 @@ export function analyzeRoute({ shipment, route, scenario = {} }) {
   };
 }
 
-export function analyzeShipmentRoutes(shipment) {
+export function analyzeShipmentRoutes(shipment: any) {
   const routes = getRoutesForPair(shipment.origin, shipment.destination);
   if (!routes || routes.length === 0) {
     throw new Error(`No route corridors available for ${shipment.origin} to ${shipment.destination}`);
   }
 
-  const results = {};
-  const resultsList = [];
+  const results: Record<string, any> = {};
+  const resultsList: any[] = [];
 
   routes.forEach((route) => {
     const analysis = analyzeRoute({ shipment, route });
