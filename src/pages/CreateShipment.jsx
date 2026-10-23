@@ -227,10 +227,10 @@ export default function CreateShipment() {
       }
     } catch (err) {
       const msg = err.message || "Failed to save shipment.";
-      if (err.code === "DUPLICATE_ID" || msg.toLowerCase().includes("already exists")) {
+      if (err.code === "DUPLICATE_ID" || err.code === "CONFLICT" || msg.toLowerCase().includes("already exists")) {
         setErrors((prev) => ({
           ...prev,
-          id: "Shipment ID already exists. Please enter a unique identifier."
+          id: "Shipment ID already exists. Enter a unique identifier."
         }));
         if (fieldRefs.id?.current) fieldRefs.id.current.focus();
       }

@@ -1,6 +1,6 @@
 /**
  * Unified Frontend API Service
- * Routes all data access and simulations through /api/v1 REST endpoints.
+ * Routes all data access, driver telemetry, receiver verification, and simulations through /api endpoints.
  * Handles network failures with explicit 'BACKEND_UNAVAILABLE' diagnostics.
  */
 
@@ -15,9 +15,8 @@ export class ApiServiceError extends Error {
 }
 
 async function request(endpoint, options = {}) {
-  const url = endpoint.startsWith("http")
-    ? endpoint
-    : `/api/v1${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+  const clean = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  const url = endpoint.startsWith("http") ? endpoint : `/api${clean}`;
 
   const headers = new Headers(options.headers || {});
   if (!headers.has("Content-Type") && options.body && typeof options.body === "string" && !options.body.startsWith("id,")) {
@@ -41,7 +40,7 @@ async function request(endpoint, options = {}) {
       const err = errorData.error || errorData;
       throw new ApiServiceError(
         err.message || `Request failed with status ${res.status}`,
-        err.code || "REQUEST_FAILED",
+        err.code || (res.status === 409 ? "CONFLICT" : "REQUEST_FAILED"),
         err.details
       );
     }
@@ -57,7 +56,7 @@ async function request(endpoint, options = {}) {
     }
     console.error("Backend request failed:", err);
     throw new ApiServiceError(
-      "Unable to reach ColdChain Intelligence server. Please ensure the backend is running.",
+      "Unable to reach ColdChain Intelligence server. Using offline state.",
       "BACKEND_UNAVAILABLE",
       null,
       true
@@ -86,11 +85,13 @@ export const api = {
     if (params.limit) query.set("limit", String(params.limit));
 
     const qs = query.toString();
-    return await request(`/shipments${qs ? `?${qs}` : ""}`);
+    const result = await request(`/shipments${qs ? `?${qs}` : ""}`);
+    return result.data || result.shipments || result;
   },
 
   getShipment: async (id) => {
-    return await request(`/shipments/${encodeURIComponent(id)}`);
+    const result = await request(`/shipments/${encodeURIComponent(id)}`);
+    return result.data || result.shipment || result;
   },
 
   createShipment: async (shipmentData) => {
@@ -113,31 +114,60 @@ export const api = {
     });
   },
 
+  resetDemoData: async () => {
+    return await request("/shipments/reset", {
+      method: "POST"
+    });
+  },
+
   assignDriver: async (id, driverName) => {
-    return await request(`/shipments/${encodeURIComponent(id)}/assign-driver`, {
+    return await request(`/shipments/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: JSON.stringify({ assignedDriver: driverName })
+    });
+  },
+
+  // Driver Persona Endpoints
+  reportIncident: async (payload) => {
+    return await request("/driver/incident", {
       method: "POST",
-      body: JSON.stringify({ driverName })
+      body: JSON.stringify(payload)
+    });
+  },
+
+  updateDriverStatus: async (payload) => {
+    return await request("/driver/status", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  },
+
+  // Receiver Persona Endpoints
+  recordReceiverDecision: async (payload) => {
+    return await request("/receiver/decision", {
+      method: "POST",
+      body: JSON.stringify(payload)
     });
   },
 
   // Analysis
   getAnalysis: async (shipmentId) => {
-    return await request(`/shipments/${encodeURIComponent(shipmentId)}/analysis`);
+    return await request(`/analysis/${encodeURIComponent(shipmentId)}`);
   },
 
   runAnalysis: async (shipmentId) => {
-    return await request(`/shipments/${encodeURIComponent(shipmentId)}/analysis`, {
+    return await request(`/analysis/${encodeURIComponent(shipmentId)}`, {
       method: "POST"
     });
   },
 
   // Scenarios
   listScenarios: async (shipmentId) => {
-    return await request(`/shipments/${encodeURIComponent(shipmentId)}/scenarios`);
+    return await request(`/v1/shipments/${encodeURIComponent(shipmentId)}/scenarios`);
   },
 
   runScenario: async (shipmentId, scenarioInputs) => {
-    return await request(`/shipments/${encodeURIComponent(shipmentId)}/scenarios`, {
+    return await request(`/v1/shipments/${encodeURIComponent(shipmentId)}/scenarios`, {
       method: "POST",
       body: JSON.stringify(scenarioInputs)
     });
@@ -151,7 +181,7 @@ export const api = {
     if (filters.routeId) query.set("routeId", filters.routeId);
 
     const qs = query.toString();
-    return await request(`/incidents${qs ? `?${qs}` : ""}`);
+    return await request(`/v1/incidents${qs ? `?${qs}` : ""}`);
   },
 
   // CSV
@@ -174,7 +204,7 @@ export const api = {
   },
 
   importCsv: async (csvContent) => {
-    return await request("/csv/import", {
+    return await request("/v1/csv/import", {
       method: "POST",
       headers: { "Content-Type": "text/csv" },
       body: csvContent
@@ -182,8 +212,11 @@ export const api = {
   },
 
   deleteImportedRecords: async () => {
-    return await request("/csv/imported", {
+    return await request("/v1/csv/imported", {
       method: "DELETE"
     });
   }
 };
+
+export const apiClient = api;
+export default api;

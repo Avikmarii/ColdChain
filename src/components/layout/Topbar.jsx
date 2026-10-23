@@ -9,14 +9,17 @@ import {
   User,
   Sliders,
   LogOut,
-  Info
+  LayoutDashboard,
+  Truck,
+  Building2,
+  ShieldCheck
 } from "lucide-react";
 import { useShipments } from "../../context/ShipmentContext";
 
 export default function Topbar({ onOpenMobileMenu }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { state, showToast } = useShipments();
+  const { state, setPersona, showToast } = useShipments();
 
   const searchInputRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,10 +28,28 @@ export default function Topbar({ onOpenMobileMenu }) {
   const [showHelp, setShowHelp] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
 
+  // Synchronize persona based on route
+  const currentPath = location.pathname;
+  let activePersona = state.activePersona || "manager";
+
+  if (currentPath.startsWith("/driver")) {
+    activePersona = "driver";
+  } else if (currentPath.startsWith("/receiving")) {
+    activePersona = "receiving";
+  } else if (
+    currentPath === "/" ||
+    currentPath.startsWith("/shipments") ||
+    currentPath.startsWith("/analysis") ||
+    currentPath.startsWith("/scenarios") ||
+    currentPath.startsWith("/history") ||
+    currentPath.startsWith("/settings")
+  ) {
+    activePersona = "manager";
+  }
+
   // Keyboard shortcut: '/' focuses the search box
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Avoid triggering when user is typing in an input/textarea
       if (
         e.key === "/" &&
         document.activeElement?.tagName !== "INPUT" &&
@@ -58,13 +79,46 @@ export default function Topbar({ onOpenMobileMenu }) {
   const handleSelectShipment = (id) => {
     setSearchQuery("");
     setIsSearchFocused(false);
-    navigate(`/shipments/${id}`);
+    if (activePersona === "driver") {
+      navigate(`/driver/${encodeURIComponent(id)}`);
+    } else if (activePersona === "receiving") {
+      navigate(`/receiving/${encodeURIComponent(id)}`);
+    } else {
+      navigate(`/shipments/${encodeURIComponent(id)}`);
+    }
+  };
+
+  // Extract current shipment ID from URL if present
+  const shipmentIdMatch = location.pathname.match(/\/(shipments|driver|receiving)\/([^/]+)/);
+  const currentShipmentId = shipmentIdMatch ? shipmentIdMatch[2] : null;
+
+  const handleSwitchPersona = (newPersona) => {
+    setPersona(newPersona);
+    if (newPersona === "manager") {
+      if (currentShipmentId) {
+        navigate(`/shipments/${currentShipmentId}`);
+      } else {
+        navigate("/");
+      }
+    } else if (newPersona === "driver") {
+      if (currentShipmentId) {
+        navigate(`/driver/${currentShipmentId}`);
+      } else {
+        navigate("/driver");
+      }
+    } else if (newPersona === "receiving") {
+      if (currentShipmentId) {
+        navigate(`/receiving/${currentShipmentId}`);
+      } else {
+        navigate("/receiving");
+      }
+    }
   };
 
   // Determine breadcrumb
   const getBreadcrumbs = () => {
     const p = location.pathname;
-    if (p === "/") return [{ label: "Dashboard", path: "/" }];
+    if (p === "/") return [{ label: "Manager Dashboard", path: "/" }];
     if (p === "/shipments/new")
       return [
         { label: "Dashboard", path: "/" },
@@ -95,6 +149,24 @@ export default function Topbar({ onOpenMobileMenu }) {
         { label: "Dashboard", path: "/" },
         { label: "Settings", path: "/settings" }
       ];
+    if (p === "/driver")
+      return [{ label: "Driver Cockpit", path: "/driver" }];
+    if (p.startsWith("/driver/")) {
+      const id = decodeURIComponent(p.replace("/driver/", ""));
+      return [
+        { label: "Driver Cockpit", path: "/driver" },
+        { label: `In-Transit: ${id}`, path: p }
+      ];
+    }
+    if (p === "/receiving")
+      return [{ label: "Hospital Receiving", path: "/receiving" }];
+    if (p.startsWith("/receiving/")) {
+      const id = decodeURIComponent(p.replace("/receiving/", ""));
+      return [
+        { label: "Hospital Receiving", path: "/receiving" },
+        { label: `Inspection: ${id}`, path: p }
+      ];
+    }
     if (p.startsWith("/shipments/"))
       return [
         { label: "Dashboard", path: "/" },
@@ -133,14 +205,56 @@ export default function Topbar({ onOpenMobileMenu }) {
         </nav>
       </div>
 
+      {/* Central Persona Switcher - Section 1 Requirement */}
       <div className="cc-topbar-center">
+        <div className="cc-persona-switcher" role="tablist" aria-label="Select Cold-Chain Persona">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activePersona === "manager"}
+            className={`cc-persona-btn ${activePersona === "manager" ? "is-active" : ""}`}
+            onClick={() => handleSwitchPersona("manager")}
+            title="Switch to Logistics Manager planning view"
+          >
+            <LayoutDashboard size={14} />
+            <span>Logistics Manager</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activePersona === "driver"}
+            className={`cc-persona-btn ${activePersona === "driver" ? "is-active" : ""}`}
+            onClick={() => handleSwitchPersona("driver")}
+            title="Switch to Driver In-Transit mobile cockpit"
+          >
+            <Truck size={14} />
+            <span>Driver In-Transit</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activePersona === "receiving"}
+            className={`cc-persona-btn ${activePersona === "receiving" ? "is-active" : ""}`}
+            onClick={() => handleSwitchPersona("receiving")}
+            title="Switch to Hospital Receiving & Inspection portal"
+          >
+            <ShieldCheck size={14} />
+            <span>Hospital Receiver</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="cc-topbar-right">
+        {/* Search Input Box */}
         <div className="cc-search-box">
-          <Search size={16} className="cc-search-icon" aria-hidden="true" />
+          <Search size={15} className="cc-search-icon" aria-hidden="true" />
           <input
             ref={searchInputRef}
             type="search"
             className="cc-search-input"
-            placeholder="Search shipments by ID, name, or route..."
+            placeholder="Search manifests..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setIsSearchFocused(true)}
@@ -155,7 +269,7 @@ export default function Topbar({ onOpenMobileMenu }) {
           {isSearchFocused && searchQuery.trim() && (
             <div
               className="cc-popover"
-              style={{ left: 0, right: 0, top: "calc(100% + 6px)" }}
+              style={{ left: -100, right: 0, top: "calc(100% + 6px)", width: 340 }}
             >
               {searchResults.length > 0 ? (
                 <div>
@@ -190,7 +304,7 @@ export default function Topbar({ onOpenMobileMenu }) {
                       <span style={{ fontWeight: 500 }}>{item.name}</span>
                       <span
                         style={{
-                          fontSize: 12,
+                          fontSize: 11,
                           color: "var(--text-secondary)",
                           marginLeft: "auto"
                         }}
@@ -214,13 +328,6 @@ export default function Topbar({ onOpenMobileMenu }) {
               )}
             </div>
           )}
-        </div>
-      </div>
-
-      <div className="cc-topbar-right">
-        <div className="cc-demo-badge" title="Demo simulation environment">
-          <span className="cc-demo-dot" />
-          <span>Demo Environment</span>
         </div>
 
         {/* Notifications Popover */}
@@ -282,7 +389,7 @@ export default function Topbar({ onOpenMobileMenu }) {
                       color: "var(--text-primary)"
                     }}
                   >
-                    CC-001 Awaiting Route Analysis
+                    Multi-Persona Workflow Active
                   </div>
                   <div
                     style={{
@@ -291,27 +398,7 @@ export default function Topbar({ onOpenMobileMenu }) {
                       marginTop: 2
                     }}
                   >
-                    Draft shipment ready for route comparison.
-                  </div>
-                </div>
-                <div style={{ padding: "10px 16px" }}>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: "var(--text-primary)"
-                    }}
-                  >
-                    Ambient Simulation Updated
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "var(--text-secondary)",
-                      marginTop: 2
-                    }}
-                  >
-                    Bengaluru–Mysuru corridor ambient model loaded at 32°C.
+                    Seamlessly test Manager, Driver cockpit, and Hospital Receiving.
                   </div>
                 </div>
               </div>
@@ -347,110 +434,24 @@ export default function Topbar({ onOpenMobileMenu }) {
                 }}
               >
                 <div style={{ fontWeight: 600, fontSize: 13.5 }}>
-                  Cold-Chain Workbench Guide
+                  Multi-Persona Suite Guide
                 </div>
                 <p style={{ fontSize: 12, marginTop: 4 }}>
-                  Compare candidate routes, evaluate simulated temperature
-                  fluctuations, and test scenarios.
+                  Use the switcher in the topbar to test <strong>Logistics Manager</strong>, <strong>Driver Cockpit</strong>, or <strong>Hospital Receiving</strong>.
                 </p>
-              </div>
-              <div style={{ padding: "6px 0" }}>
-                <button
-                  type="button"
-                  className="cc-popover-item"
-                  onClick={() => {
-                    navigate("/shipments/new");
-                    setShowHelp(false);
-                  }}
-                >
-                  <ChevronRight size={14} /> Create a new shipment
-                </button>
-                <button
-                  type="button"
-                  className="cc-popover-item"
-                  onClick={() => {
-                    navigate("/history");
-                    setShowHelp(false);
-                  }}
-                >
-                  <ChevronRight size={14} /> Import or export reports
-                </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* Profile Menu */}
-        <div style={{ position: "relative" }}>
-          <button
-            type="button"
-            className="cc-user-btn"
-            onClick={() => {
-              setShowProfile(!showProfile);
-              setShowNotifications(false);
-              setShowHelp(false);
-            }}
-            aria-label="User Profile"
-            title="Profile (Demo)"
-          >
-            <div className="cc-user-avatar">LM</div>
-            <span className="cc-user-role">Manager</span>
-          </button>
-          {showProfile && (
-            <div
-              className="cc-popover"
-              style={{ width: 200, right: 0 }}
-              role="menu"
-            >
-              <button
-                type="button"
-                className="cc-popover-item"
-                onClick={() => {
-                  showToast(
-                    "Profile settings",
-                    "Demo mode: active user is Logistics Manager"
-                  );
-                  setShowProfile(false);
-                }}
-              >
-                <User size={15} />
-                <span>Profile</span>
-              </button>
-              <button
-                type="button"
-                className="cc-popover-item"
-                onClick={() => {
-                  navigate("/settings");
-                  setShowProfile(false);
-                }}
-              >
-                <Sliders size={15} />
-                <span>Preferences</span>
-              </button>
-              <div
-                style={{
-                  height: 1,
-                  background: "var(--border)",
-                  margin: "4px 0"
-                }}
-              />
-              <button
-                type="button"
-                className="cc-popover-item"
-                style={{ color: "var(--danger)" }}
-                onClick={() => {
-                  showToast(
-                    "Demo Environment",
-                    "Sign out is disabled in demo mode"
-                  );
-                  setShowProfile(false);
-                }}
-              >
-                <LogOut size={15} />
-                <span>Sign Out (Demo)</span>
-              </button>
-            </div>
-          )}
+        {/* Profile indicator */}
+        <div className="cc-user-btn" title={`Active Persona: ${activePersona}`}>
+          <div className="cc-user-avatar">
+            {activePersona === "driver" ? "DR" : activePersona === "receiving" ? "HR" : "LM"}
+          </div>
+          <span className="cc-user-role">
+            {activePersona === "driver" ? "Driver" : activePersona === "receiving" ? "Receiver" : "Manager"}
+          </span>
         </div>
       </div>
     </header>

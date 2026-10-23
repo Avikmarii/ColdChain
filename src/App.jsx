@@ -11,6 +11,10 @@ import ShipmentPicker from "./pages/ShipmentPicker";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
 import ShipmentDetailsPage from "./pages/ShipmentDetailsPage";
+import DriverShipmentList from "./pages/driver/DriverShipmentList";
+import DriverCockpit from "./pages/driver/DriverCockpit";
+import ReceivingList from "./pages/receiving/ReceivingList";
+import ReceivingInspection from "./pages/receiving/ReceivingInspection";
 import NotFound from "./pages/NotFound";
 
 export default function App() {
@@ -28,6 +32,10 @@ export default function App() {
             <Route path="shipments/:id/scenarios" element={<ScenarioSimulator />} />
             <Route path="analysis" element={<ShipmentPicker />} />
             <Route path="scenarios" element={<ShipmentPicker />} />
+            <Route path="driver" element={<DriverShipmentList />} />
+            <Route path="driver/:id" element={<DriverCockpit />} />
+            <Route path="receiving" element={<ReceivingList />} />
+            <Route path="receiving/:id" element={<ReceivingInspection />} />
             <Route path="history" element={<History />} />
             <Route path="settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />

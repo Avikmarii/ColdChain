@@ -8,7 +8,9 @@ import {
   History,
   Settings,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Truck,
+  ShieldCheck
 } from "lucide-react";
 
 export const BRAND_NAME = "ColdChain Intelligence";
@@ -18,6 +20,8 @@ const NAV_ITEMS = [
   { path: "/shipments/new", label: "New Shipment", icon: PlusCircle },
   { path: "/analysis", label: "Analysis", icon: Route },
   { path: "/scenarios", label: "Scenarios", icon: Sliders },
+  { path: "/driver", label: "Driver Cockpit", icon: Truck },
+  { path: "/receiving", label: "Hospital Intake", icon: ShieldCheck },
   { path: "/history", label: "History", icon: History }
 ];
 

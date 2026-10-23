@@ -1,0 +1,426 @@
+[
+  {
+    "id": "CC-001",
+    "name": "Vaccine Delivery 001",
+    "category": "Vaccine",
+    "description": "Pediatric cold-chain distribution batch",
+    "origin": "Bengaluru",
+    "destination": "Mysuru",
+    "departureDateTime": "2026-10-24T09:00",
+    "maxTransitHours": 5,
+    "temperatureLimits": {
+      "minC": 2,
+      "maxC": 8,
+      "unit": "C",
+      "source": "WHO Technical Report Annex 4",
+      "isDemoAssumption": true
+    },
+    "container": {
+      "insulation": "Moderate",
+      "coolingSystem": "Active (Refrigerated)",
+      "notes": "Standard dual-compressor active reefer box"
+    },
+    "status": "Draft",
+    "transitStatus": "SCHEDULED",
+    "selectedRouteId": null,
+    "assignedDriver": "Fleet Driver - Unit 104",
+    "currentTempC": 4.2,
+    "transitDelayMin": 0,
+    "progressPct": 0,
+    "telemetry": [
+      {
+        "timestamp": "2026-10-23T04:30:00Z",
+        "tempC": 4.2,
+        "location": "Bengaluru Dispatch Bay",
+        "ambientC": 31.5
+      }
+    ],
+    "incidents": [],
+    "disposition": null,
+    "analysis": null,
+    "activity": [
+      {
+        "at": "2026-10-23T04:30:00Z",
+        "text": "Shipment draft created",
+        "provenance": "user-reported"
+      }
+    ],
+    "isDemoRecord": true,
+    "source": "demo",
+    "createdAt": "2026-10-23T04:30:00Z",
+    "updatedAt": "2026-10-23T04:30:00Z"
+  },
+  {
+    "id": "CC-002",
+    "name": "Medical Supply 002",
+    "category": "Medical Supplies",
+    "description": "Clinical reagent kits transport",
+    "origin": "Bengaluru",
+    "destination": "Chennai",
+    "departureDateTime": "2026-10-24T06:00",
+    "maxTransitHours": 8,
+    "temperatureLimits": {
+      "minC": 2,
+      "maxC": 8,
+      "unit": "C",
+      "source": "Manufacturer Specification",
+      "isDemoAssumption": true
+    },
+    "container": {
+      "insulation": "Moderate",
+      "coolingSystem": "Active (Refrigerated)",
+      "notes": "Monitored container with battery backup"
+    },
+    "status": "Analyzed",
+    "transitStatus": "IN_TRANSIT",
+    "selectedRouteId": "route-a",
+    "assignedDriver": "Demo Fleet A-4",
+    "currentTempC": 4.8,
+    "transitDelayMin": 0,
+    "progressPct": 65,
+    "telemetry": [
+      {
+        "timestamp": "2026-10-24T06:00:00Z",
+        "tempC": 4.2,
+        "location": "Bengaluru Dispatch",
+        "ambientC": 28
+      },
+      {
+        "timestamp": "2026-10-24T07:30:00Z",
+        "tempC": 4.4,
+        "location": "Hosur Border",
+        "ambientC": 30.5
+      },
+      {
+        "timestamp": "2026-10-24T09:00:00Z",
+        "tempC": 4.8,
+        "location": "Vellore Corridor Checkpoint",
+        "ambientC": 33
+      }
+    ],
+    "incidents": [],
+    "disposition": null,
+    "analysis": {
+      "route-a": {
+        "routeId": "route-a",
+        "scenario": {
+          "extraDelayMin": 0,
+          "ambientC": 33,
+          "coolingInterruptionMin": 0
+        },
+        "travelTimeMin": 390,
+        "limits": {
+          "minC": 2,
+          "maxC": 8
+        },
+        "excursions": [],
+        "maxC": 6.8,
+        "minC": 3.5,
+        "minutesOutOfRange": 0,
+        "constraintStatus": "meets",
+        "riskLevel": "low",
+        "provenance": "demo-simulated",
+        "modelVersion": "demo-0.1"
+      },
+      "route-b": {
+        "routeId": "route-b",
+        "scenario": {
+          "extraDelayMin": 0,
+          "ambientC": 33,
+          "coolingInterruptionMin": 0
+        },
+        "travelTimeMin": 410,
+        "limits": {
+          "minC": 2,
+          "maxC": 8
+        },
+        "excursions": [
+          {
+            "startMin": 340,
+            "endMin": 370,
+            "peakC": 8.4
+          }
+        ],
+        "maxC": 8.4,
+        "minC": 3.4,
+        "minutesOutOfRange": 30,
+        "constraintStatus": "fails",
+        "riskLevel": "medium",
+        "provenance": "demo-simulated",
+        "modelVersion": "demo-0.1"
+      },
+      "ranking": {
+        "preferredRouteId": "route-a",
+        "reasons": [
+          "Meets configured limits in this simulation",
+          "No simulated excursions",
+          "Direct highway corridor"
+        ],
+        "tradeoffs": [
+          "Higher highway toll tariffs"
+        ],
+        "limitations": [
+          "Demo simulation model",
+          "Unvalidated environmental factors",
+          "No live GPS integration"
+        ]
+      }
+    },
+    "activity": [
+      {
+        "at": "2026-10-22T14:30:00Z",
+        "text": "Shipment created",
+        "provenance": "user-reported"
+      },
+      {
+        "at": "2026-10-22T14:35:00Z",
+        "text": "Route simulation evaluated",
+        "provenance": "demo-simulated"
+      }
+    ],
+    "isDemoRecord": true,
+    "source": "demo",
+    "createdAt": "2026-10-22T14:30:00Z",
+    "updatedAt": "2026-10-22T14:35:00Z"
+  },
+  {
+    "id": "CC-003",
+    "name": "Pharmaceutical Delivery 003",
+    "category": "Pharmaceutical Product",
+    "description": "Insulin and biologic formulations",
+    "origin": "Bengaluru",
+    "destination": "Hyderabad",
+    "departureDateTime": "2026-10-25T05:00",
+    "maxTransitHours": 12,
+    "temperatureLimits": {
+      "minC": 2,
+      "maxC": 8,
+      "unit": "C",
+      "source": "USP <1079> Guidelines",
+      "isDemoAssumption": true
+    },
+    "container": {
+      "insulation": "High",
+      "coolingSystem": "Active (Refrigerated)",
+      "notes": "High-grade vacuum insulated panels"
+    },
+    "status": "Recommended",
+    "transitStatus": "IN_TRANSIT",
+    "selectedRouteId": "route-a",
+    "assignedDriver": "Demo Fleet H-12",
+    "currentTempC": 4.1,
+    "transitDelayMin": 0,
+    "progressPct": 40,
+    "telemetry": [
+      {
+        "timestamp": "2026-10-25T05:00:00Z",
+        "tempC": 3.8,
+        "location": "Bengaluru Dispatch Bay",
+        "ambientC": 26
+      },
+      {
+        "timestamp": "2026-10-25T07:30:00Z",
+        "tempC": 4.1,
+        "location": "Anantapur Rest Stop",
+        "ambientC": 31
+      }
+    ],
+    "incidents": [],
+    "disposition": null,
+    "analysis": {
+      "route-a": {
+        "routeId": "route-a",
+        "scenario": {
+          "extraDelayMin": 0,
+          "ambientC": 34,
+          "coolingInterruptionMin": 0
+        },
+        "travelTimeMin": 540,
+        "limits": {
+          "minC": 2,
+          "maxC": 8
+        },
+        "excursions": [],
+        "maxC": 5.9,
+        "minC": 3.2,
+        "minutesOutOfRange": 0,
+        "constraintStatus": "meets",
+        "riskLevel": "low",
+        "provenance": "demo-simulated",
+        "modelVersion": "demo-0.1"
+      },
+      "route-b": {
+        "routeId": "route-b",
+        "scenario": {
+          "extraDelayMin": 0,
+          "ambientC": 34,
+          "coolingInterruptionMin": 0
+        },
+        "travelTimeMin": 580,
+        "limits": {
+          "minC": 2,
+          "maxC": 8
+        },
+        "excursions": [],
+        "maxC": 6.7,
+        "minC": 3.3,
+        "minutesOutOfRange": 0,
+        "constraintStatus": "meets",
+        "riskLevel": "low",
+        "provenance": "demo-simulated",
+        "modelVersion": "demo-0.1"
+      },
+      "ranking": {
+        "preferredRouteId": "route-a",
+        "reasons": [
+          "Meets configured limits in this simulation",
+          "40 minutes faster transit",
+          "Consistent thermal stability"
+        ],
+        "tradeoffs": [
+          "Route A experiences higher daytime traffic density"
+        ],
+        "limitations": [
+          "Demo simulation model",
+          "Assumes continuous active refrigeration",
+          "Unvalidated ambient inputs"
+        ]
+      }
+    },
+    "activity": [
+      {
+        "at": "2026-10-21T10:00:00Z",
+        "text": "Shipment created",
+        "provenance": "user-reported"
+      },
+      {
+        "at": "2026-10-21T10:10:00Z",
+        "text": "Analysis completed and saved to history",
+        "provenance": "demo-simulated"
+      }
+    ],
+    "isDemoRecord": true,
+    "source": "demo",
+    "createdAt": "2026-10-21T10:00:00Z",
+    "updatedAt": "2026-10-21T10:10:00Z"
+  },
+  {
+    "id": "CC-004",
+    "name": "Temperature-Sensitive Food 004",
+    "category": "Temperature-Sensitive Food",
+    "description": "Specialty culture enzymes requiring strict 2°C - 4°C band",
+    "origin": "Bengaluru",
+    "destination": "Pune",
+    "departureDateTime": "2026-10-26T08:00",
+    "maxTransitHours": 15,
+    "temperatureLimits": {
+      "minC": 2,
+      "maxC": 4,
+      "unit": "C",
+      "source": "Specialty Food Lab Spec",
+      "isDemoAssumption": true
+    },
+    "container": {
+      "insulation": "Basic",
+      "coolingSystem": "Passive",
+      "notes": "Passive dry ice gel packs (insufficient for 14h transit)"
+    },
+    "status": "No Feasible Route",
+    "transitStatus": "SCHEDULED",
+    "selectedRouteId": null,
+    "assignedDriver": null,
+    "currentTempC": 3.6,
+    "transitDelayMin": 0,
+    "progressPct": 0,
+    "telemetry": [
+      {
+        "timestamp": "2026-10-20T09:00:00Z",
+        "tempC": 3.6,
+        "location": "Packaging Facility",
+        "ambientC": 24
+      }
+    ],
+    "incidents": [],
+    "disposition": null,
+    "analysis": {
+      "route-a": {
+        "routeId": "route-a",
+        "scenario": {
+          "extraDelayMin": 0,
+          "ambientC": 36,
+          "coolingInterruptionMin": 0
+        },
+        "travelTimeMin": 810,
+        "limits": {
+          "minC": 2,
+          "maxC": 4
+        },
+        "excursions": [
+          {
+            "startMin": 320,
+            "endMin": 810,
+            "peakC": 9.8
+          }
+        ],
+        "maxC": 9.8,
+        "minC": 2.1,
+        "minutesOutOfRange": 490,
+        "constraintStatus": "fails",
+        "riskLevel": "high",
+        "provenance": "demo-simulated",
+        "modelVersion": "demo-0.1"
+      },
+      "route-b": {
+        "routeId": "route-b",
+        "scenario": {
+          "extraDelayMin": 0,
+          "ambientC": 36,
+          "coolingInterruptionMin": 0
+        },
+        "travelTimeMin": 900,
+        "limits": {
+          "minC": 2,
+          "maxC": 4
+        },
+        "excursions": [
+          {
+            "startMin": 280,
+            "endMin": 900,
+            "peakC": 11.2
+          }
+        ],
+        "maxC": 11.2,
+        "minC": 2,
+        "minutesOutOfRange": 620,
+        "constraintStatus": "fails",
+        "riskLevel": "high",
+        "provenance": "demo-simulated",
+        "modelVersion": "demo-0.1"
+      },
+      "ranking": {
+        "preferredRouteId": null,
+        "reasons": [],
+        "tradeoffs": [],
+        "limitations": [
+          "No candidate route meets configured 2°C - 4°C limits with Basic insulation and Passive cooling over >13h transit"
+        ]
+      }
+    },
+    "activity": [
+      {
+        "at": "2026-10-20T09:00:00Z",
+        "text": "Shipment evaluated",
+        "provenance": "demo-simulated"
+      },
+      {
+        "at": "2026-10-20T09:05:00Z",
+        "text": "Flagged: No feasible route meets constraints under current assumptions",
+        "provenance": "demo-simulated"
+      }
+    ],
+    "isDemoRecord": true,
+    "source": "demo",
+    "createdAt": "2026-10-20T09:00:00Z",
+    "updatedAt": "2026-10-20T09:05:00Z"
+  }
+]
