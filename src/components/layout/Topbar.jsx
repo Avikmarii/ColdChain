@@ -269,7 +269,7 @@ export default function Topbar({ onOpenMobileMenu }) {
           {isSearchFocused && searchQuery.trim() && (
             <div
               className="cc-popover"
-              style={{ left: -100, right: 0, top: "calc(100% + 6px)", width: 340 }}
+              style={{ right: 0, top: "calc(100% + 6px)", width: 320, maxWidth: "min(340px, 90vw)" }}
             >
               {searchResults.length > 0 ? (
                 <div>

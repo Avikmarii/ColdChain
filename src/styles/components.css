@@ -491,19 +491,21 @@
   border-radius: var(--radius-full);
   padding: 3px;
   gap: 2px;
+  flex-shrink: 0;
 }
 
 .cc-persona-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: var(--radius-full);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--text-secondary);
   transition: all 0.18s ease;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .cc-persona-btn:hover {
@@ -516,6 +518,30 @@
   color: var(--brand-blue-deep);
   font-weight: 600;
   box-shadow: 0 1px 4px rgba(23, 36, 58, 0.08), 0 1px 1px rgba(23, 36, 58, 0.04);
+}
+
+@media (max-width: 1140px) {
+  .cc-persona-btn {
+    padding: 5px 9px;
+    font-size: 12px;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 960px) {
+  .cc-persona-btn {
+    padding: 5px 7px;
+    font-size: 11.5px;
+  }
+}
+
+@media (max-width: 860px) {
+  .cc-persona-btn span {
+    display: none;
+  }
+  .cc-persona-btn {
+    padding: 6px 9px;
+  }
 }
 
 /* ----------------------------------------------------
