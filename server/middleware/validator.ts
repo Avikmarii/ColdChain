@@ -53,6 +53,19 @@ export function validateShipmentInput(req: Request, res: Response, next: NextFun
     }
   }
 
+  // Shipment ID validation if present
+  if (body.id !== undefined && body.id !== null) {
+    if (typeof body.id !== "string" || !body.id.trim()) {
+      return next(new ApiError(400, "VALIDATION_FAILED", "Shipment ID is required."));
+    }
+    if (!/^[A-Za-z0-9_-]+$/.test(body.id.trim())) {
+      return next(new ApiError(400, "VALIDATION_FAILED", "ID can only contain letters, numbers, hyphens, and underscores."));
+    }
+    if (body.id.trim().length > 60) {
+      return next(new ApiError(400, "VALIDATION_FAILED", "Shipment ID must not exceed 60 characters."));
+    }
+  }
+
   // Name validation
   if (!body.name || typeof body.name !== "string" || !body.name.trim()) {
     return next(new ApiError(400, "VALIDATION_FAILED", "Shipment 'name' is required."));

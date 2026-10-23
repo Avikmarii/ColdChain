@@ -25,3 +25,9 @@ export function getRoutesForPair(origin: string, destination: string) {
   if (!pair) return [];
   return [pair.routes["route-a"], pair.routes["route-b"]];
 }
+
+export function isRoutePairSupported(origin: string, destination: string): boolean {
+  if (!origin || !destination) return false;
+  const key = `${origin}-${destination}`;
+  return Boolean(ROUTE_GEOMETRY[key]);
+}

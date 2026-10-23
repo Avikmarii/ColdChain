@@ -22,7 +22,8 @@ import ProvenanceBanner from "../components/common/ProvenanceBanner";
 import NotFound from "./NotFound";
 
 export default function Results() {
-  const { id } = useParams();
+  const { id: rawId } = useParams();
+  const id = rawId ? decodeURIComponent(rawId) : "";
   const navigate = useNavigate();
   const { getShipmentById, dispatch, showToast } = useShipments();
   const shipment = getShipmentById(id);

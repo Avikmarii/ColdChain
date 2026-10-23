@@ -23,7 +23,8 @@ import AttentiveFace from "../components/common/AttentiveFace";
 import NotFound from "./NotFound";
 
 export default function RouteAnalysis() {
-  const { id } = useParams();
+  const { id: rawId } = useParams();
+  const id = rawId ? decodeURIComponent(rawId) : "";
   const navigate = useNavigate();
   const { getShipmentById, dispatch, showToast } = useShipments();
   const shipment = getShipmentById(id);

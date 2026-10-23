@@ -90,7 +90,7 @@ export const api = {
   },
 
   getShipment: async (id) => {
-    return await request(`/shipments/${id}`);
+    return await request(`/shipments/${encodeURIComponent(id)}`);
   },
 
   createShipment: async (shipmentData) => {
@@ -101,20 +101,20 @@ export const api = {
   },
 
   updateShipment: async (id, shipmentData) => {
-    return await request(`/shipments/${id}`, {
+    return await request(`/shipments/${encodeURIComponent(id)}`, {
       method: "PUT",
       body: JSON.stringify(shipmentData)
     });
   },
 
   deleteShipment: async (id) => {
-    return await request(`/shipments/${id}`, {
+    return await request(`/shipments/${encodeURIComponent(id)}`, {
       method: "DELETE"
     });
   },
 
   assignDriver: async (id, driverName) => {
-    return await request(`/shipments/${id}/assign-driver`, {
+    return await request(`/shipments/${encodeURIComponent(id)}/assign-driver`, {
       method: "POST",
       body: JSON.stringify({ driverName })
     });
@@ -122,22 +122,22 @@ export const api = {
 
   // Analysis
   getAnalysis: async (shipmentId) => {
-    return await request(`/shipments/${shipmentId}/analysis`);
+    return await request(`/shipments/${encodeURIComponent(shipmentId)}/analysis`);
   },
 
   runAnalysis: async (shipmentId) => {
-    return await request(`/shipments/${shipmentId}/analysis`, {
+    return await request(`/shipments/${encodeURIComponent(shipmentId)}/analysis`, {
       method: "POST"
     });
   },
 
   // Scenarios
   listScenarios: async (shipmentId) => {
-    return await request(`/shipments/${shipmentId}/scenarios`);
+    return await request(`/shipments/${encodeURIComponent(shipmentId)}/scenarios`);
   },
 
   runScenario: async (shipmentId, scenarioInputs) => {
-    return await request(`/shipments/${shipmentId}/scenarios`, {
+    return await request(`/shipments/${encodeURIComponent(shipmentId)}/scenarios`, {
       method: "POST",
       body: JSON.stringify(scenarioInputs)
     });

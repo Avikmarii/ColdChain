@@ -120,7 +120,7 @@ router.post("/", validateShipmentInput, async (req: Request, res: Response, next
 
     const existingSnap = await getDoc(doc(db, SHIPMENTS_COLLECTION, id));
     if (existingSnap.exists()) {
-      return next(new ApiError(409, "DUPLICATE_ID", `Shipment with ID "${id}" already exists.`));
+      return next(new ApiError(409, "DUPLICATE_ID", "Shipment ID already exists. Please enter a unique identifier."));
     }
 
     const nowIso = new Date().toISOString();
@@ -218,8 +218,17 @@ router.put("/:id", validateShipmentInput, async (req: Request, res: Response, ne
       });
     }
 
+    const newId = body.id ? String(body.id).trim() : id;
+    if (newId !== id) {
+      const targetDoc = await getDoc(doc(db, SHIPMENTS_COLLECTION, newId));
+      if (targetDoc.exists()) {
+        return next(new ApiError(409, "DUPLICATE_ID", "Shipment ID already exists. Please enter a unique identifier."));
+      }
+    }
+
     const updatedShipment = {
       ...existing,
+      id: newId,
       name: body.name.trim(),
       category: body.category || existing.category,
       description: body.description?.trim() ?? existing.description,
@@ -246,7 +255,23 @@ router.put("/:id", validateShipmentInput, async (req: Request, res: Response, ne
       updatedAt: nowIso
     };
 
-    await setDoc(docRef, updatedShipment);
+    if (newId !== id) {
+      await setDoc(doc(db, SHIPMENTS_COLLECTION, newId), updatedShipment);
+      await deleteDoc(docRef);
+      try {
+        const scenariosSnap = await getDocs(collection(db, "scenarios"));
+        for (const sDoc of scenariosSnap.docs) {
+          if (sDoc.data().shipmentId === id) {
+            await setDoc(sDoc.ref, { ...sDoc.data(), shipmentId: newId });
+          }
+        }
+      } catch (e) {
+        console.warn("Could not migrate scenarios for renamed shipment", e);
+      }
+    } else {
+      await setDoc(docRef, updatedShipment);
+    }
+
     res.json({ data: updatedShipment, staleReset: isStale });
   } catch (err: any) {
     next(new ApiError(500, "DATABASE_ERROR", "Failed to update shipment record."));

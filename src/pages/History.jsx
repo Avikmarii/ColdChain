@@ -315,7 +315,7 @@ export default function History() {
                                 ? "User-imported (unverified)"
                                 : s.isDemoRecord
                                 ? "Demo"
-                                : "Simulated"}
+                                : "User-defined (unverified)"}
                             </span>
                           </td>
                         </tr>
@@ -358,7 +358,7 @@ export default function History() {
                             ? "User-imported (unverified)"
                             : s.isDemoRecord
                             ? "Demo"
-                            : "Simulated"}
+                            : "User-defined (unverified)"}
                         </span>
                       </div>
                     </div>

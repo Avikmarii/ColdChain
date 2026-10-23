@@ -109,7 +109,7 @@ export default function RouteCard({
         >
           {!isAnalyzed ? (
             <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>
-              Awaiting simulation.
+              Not yet evaluated
             </span>
           ) : (
             <>

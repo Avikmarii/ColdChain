@@ -25,7 +25,8 @@ import ProvenanceBanner from "../components/common/ProvenanceBanner";
 import NotFound from "./NotFound";
 
 export default function ShipmentDetailsPage() {
-  const { id } = useParams();
+  const { id: rawId } = useParams();
+  const id = rawId ? decodeURIComponent(rawId) : "";
   const navigate = useNavigate();
   const { getShipmentById, showToast, dispatch } = useShipments();
   const shipment = getShipmentById(id);
@@ -88,7 +89,7 @@ export default function ShipmentDetailsPage() {
                   ? "User-imported (unverified)"
                   : shipment.isDemoRecord
                   ? "Demo"
-                  : "Simulated"}
+                  : "User-defined (unverified)"}
               </span>
             </div>
             <p style={{ marginTop: 4, fontSize: 14 }}>

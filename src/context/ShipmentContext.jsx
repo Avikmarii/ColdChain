@@ -70,6 +70,19 @@ function shipmentReducer(state, action) {
       return { ...state, shipments: next };
     }
 
+    case "UPDATE_SHIPMENT": {
+      const { originalId, updatedShipment } = action.payload.originalId
+        ? action.payload
+        : { originalId: action.payload.id, updatedShipment: action.payload };
+
+      const nextShipments = state.shipments.map((s) =>
+        s.id === originalId
+          ? { ...s, ...updatedShipment, updatedAt: new Date().toISOString() }
+          : s
+      );
+      return { ...state, shipments: nextShipments };
+    }
+
     case "REMOVE_LOCAL_SHIPMENT":
       return {
         ...state,
@@ -177,14 +190,28 @@ export function ShipmentProvider({ children }) {
     });
   };
 
+  const addToast = (message, type = "info", duration = 4000) => {
+    dispatch({
+      type: "ADD_TOAST",
+      payload: { title: type === "error" ? "Error" : "Notification", message, type, duration }
+    });
+  };
+
   const getShipmentById = (id) => {
-    return state.shipments.find((s) => s.id === id) || null;
+    if (!id) return null;
+    try {
+      const decoded = decodeURIComponent(id).toLowerCase();
+      return state.shipments.find((s) => s.id?.toLowerCase() === decoded) || null;
+    } catch {
+      return state.shipments.find((s) => s.id?.toLowerCase() === id.toLowerCase()) || null;
+    }
   };
 
   const value = {
     state,
     dispatch,
     showToast,
+    addToast,
     refreshShipments,
     getShipmentById
   };
