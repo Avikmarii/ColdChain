@@ -1,0 +1,6 @@
+{
+  "name": "ColdChain Intelligence",
+  "description": "Cold-chain route analysis workbench for evaluating temperature-sensitive transport.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

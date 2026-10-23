@@ -1,0 +1,90 @@
+/* Appendix A: AttentiveFace */
+.cc-face-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: var(--face-h, 180px);
+  background: transparent;
+  color: var(--brand-blue-deep);
+}
+
+.cc-face-wrap .face {
+  width: var(--face-w, 150px);
+  max-width: 100%;
+  height: auto;
+}
+
+.cc-face-wrap .face__eyes,
+.cc-face-wrap .face__eye-lid,
+.cc-face-wrap .face__mouth-left,
+.cc-face-wrap .face__mouth-right,
+.cc-face-wrap .face__nose,
+.cc-face-wrap .face__pupil {
+  animation: cc-eyes 1s 0.3s forwards;
+}
+
+.cc-face-wrap .face__eye-lid,
+.cc-face-wrap .face__pupil {
+  animation-duration: 4s;
+  animation-delay: 1.3s;
+  animation-iteration-count: infinite;
+}
+
+.cc-face-wrap .face__eye-lid { animation-name: cc-eye-lid; }
+.cc-face-wrap .face__mouth-left { animation-name: cc-mouth-left; }
+.cc-face-wrap .face__mouth-right { animation-name: cc-mouth-right; }
+.cc-face-wrap .face__nose { animation-name: cc-nose; }
+.cc-face-wrap .face__pupil { animation-name: cc-pupil; }
+
+@keyframes cc-eye-lid {
+  0%, 40%, 45%, 100% { transform: translateY(0); }
+  42.5% { transform: translateY(17.5px); }
+}
+@keyframes cc-eyes {
+  from { transform: translateY(112.5px); }
+  to { transform: translateY(15px); }
+}
+@keyframes cc-pupil {
+  0%, 37.5%, 40%, 45%, 87.5%, 100% { stroke-dashoffset: 0; transform: translate(0, 0); }
+  12.5%, 25%, 62.5%, 75% { transform: translate(-35px, 0); }
+  42.5% { stroke-dashoffset: 35; transform: translate(0, 17.5px); }
+}
+@keyframes cc-mouth-left {
+  from, 50% { stroke-dashoffset: -102; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes cc-mouth-right {
+  from, 50% { stroke-dashoffset: 102; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes cc-nose {
+  from { transform: translate(0, 0); }
+  to { transform: translate(0, 22.5px); }
+}
+
+/* Reduced motion: no animation, show the final resting face. */
+@media (prefers-reduced-motion: reduce) {
+  .cc-face-wrap .face__eyes,
+  .cc-face-wrap .face__eye-lid,
+  .cc-face-wrap .face__mouth-left,
+  .cc-face-wrap .face__mouth-right,
+  .cc-face-wrap .face__nose,
+  .cc-face-wrap .face__pupil { animation: none !important; }
+  .cc-face-wrap .face__eyes { transform: translateY(15px) !important; }
+  .cc-face-wrap .face__nose { transform: translate(0, 22.5px) !important; }
+  .cc-face-wrap .face__mouth-left,
+  .cc-face-wrap .face__mouth-right { stroke-dashoffset: 0 !important; }
+}
+
+.reduce-motion .cc-face-wrap .face__eyes,
+.reduce-motion .cc-face-wrap .face__eye-lid,
+.reduce-motion .cc-face-wrap .face__mouth-left,
+.reduce-motion .cc-face-wrap .face__mouth-right,
+.reduce-motion .cc-face-wrap .face__nose,
+.reduce-motion .cc-face-wrap .face__pupil {
+  animation: none !important;
+}
+.reduce-motion .cc-face-wrap .face__eyes { transform: translateY(15px) !important; }
+.reduce-motion .cc-face-wrap .face__nose { transform: translate(0, 22.5px) !important; }
+.reduce-motion .cc-face-wrap .face__mouth-left,
+.reduce-motion .cc-face-wrap .face__mouth-right { stroke-dashoffset: 0 !important; }

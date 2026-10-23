@@ -1,0 +1,213 @@
+/* Appendix B: Import Chest */
+.cc-import {
+  --w: 140px;
+  --d: 140px;
+  --h-base: 100px;
+  --h-lid: 40px;
+  --chest-scale: 0.8;
+
+  --cc-panel: #F4F8FF;
+  --cc-panel-hi: #FFFFFF;
+  --cc-panel-lo: #DCE8FB;
+  --cc-band: var(--brand-blue);
+  --cc-band-deep: var(--brand-blue-deep);
+  --cc-void: #0F1B30;
+  --cc-glow: rgba(34, 184, 167, 0.55);
+
+  --cc-latch-light: #B8F0E8;
+  --cc-latch-base: var(--teal);
+  --cc-latch-dark: #17897D;
+  --cc-latch-outline: #0E5F57;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.cc-chest-stage {
+  position: relative;
+  width: 100%;
+  max-width: 260px;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  perspective: 1200px;
+  border-radius: 16px;
+  transition: box-shadow 0.2s, background 0.2s;
+}
+.cc-chest-stage:focus-within,
+.cc-chest-stage.is-dragover {
+  background: var(--soft-blue);
+  box-shadow: 0 0 0 3px rgba(57, 120, 246, 0.35);
+}
+
+/* Invisible real file input covering the whole stage */
+.cc-file-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  z-index: 100;
+  cursor: pointer;
+}
+
+.cc-chest {
+  position: relative;
+  width: var(--w);
+  height: calc(var(--h-base) + var(--h-lid));
+  transform-style: preserve-3d;
+  transform: scale(var(--chest-scale)) rotateX(-24deg) rotateY(-40deg);
+  pointer-events: none;
+}
+
+.cc-part {
+  position: absolute;
+  left: 0;
+  width: var(--w);
+  transform-style: preserve-3d;
+}
+.cc-base { top: var(--h-lid); height: var(--h-base); }
+.cc-lid {
+  top: 0;
+  height: var(--h-lid);
+  transform-origin: 50% var(--h-lid) -70px;
+  transition: transform 0.45s cubic-bezier(0.2, 1.2, 0.4, 1);
+}
+
+/* Lid opens on hover, keyboard focus, drag-over, and while busy */
+.cc-file-input:hover ~ .cc-chest .cc-lid,
+.cc-file-input:focus-visible ~ .cc-chest .cc-lid,
+.cc-chest-stage.is-dragover .cc-lid,
+.cc-chest-stage[data-state="importing"] .cc-lid {
+  transform: rotateX(100deg);
+}
+.cc-file-input:active ~ .cc-chest .cc-lid { transform: rotateX(110deg); }
+
+/* Frosted crate panels with soft plank lines and brand-blue bands */
+.cc-side {
+  position: absolute;
+  box-sizing: border-box;
+  background-color: var(--cc-panel);
+  border: 8px solid var(--cc-band);
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      var(--cc-panel-hi) 0px, var(--cc-panel-hi) 3px,
+      transparent 3px, transparent 18px,
+      var(--cc-panel-lo) 18px, var(--cc-panel-lo) 20px
+    ),
+    repeating-linear-gradient(
+      to right,
+      transparent 0px, transparent 10px,
+      rgba(57, 120, 246, 0.05) 10px, rgba(57, 120, 246, 0.05) 20px
+    );
+}
+
+/* Gentle directional lighting (kept light so the theme stays airy) */
+.cc-base-front, .cc-lid-front { filter: brightness(1); }
+.cc-base-left,  .cc-lid-left  { filter: brightness(0.96); }
+.cc-base-right, .cc-lid-right { filter: brightness(0.9); }
+.cc-base-back,  .cc-lid-back  { filter: brightness(0.82); }
+.cc-lid-top { filter: brightness(1.04); }
+
+/* Base geometry */
+.cc-base-front  { width: var(--w); height: var(--h-base); transform: translateZ(70px); }
+.cc-base-back   { width: var(--w); height: var(--h-base); transform: rotateY(180deg) translateZ(70px); }
+.cc-base-left   { width: var(--d); height: var(--h-base); transform: rotateY(-90deg) translateZ(70px); }
+.cc-base-right  { width: var(--d); height: var(--h-base); transform: rotateY(90deg) translateZ(70px); }
+.cc-base-bottom {
+  width: var(--w); height: var(--d);
+  transform: rotateX(-90deg) translateZ(calc(var(--h-base) - 70px));
+  background: var(--cc-band-deep);
+}
+/* Hollow, softly glowing inside */
+.cc-base-top {
+  width: var(--w); height: var(--d);
+  transform: rotateX(90deg) translateZ(70px);
+  background-color: var(--cc-void);
+  background-image: none;
+  box-shadow: inset 0 0 40px var(--cc-glow);
+}
+
+/* Lid geometry */
+.cc-lid-front { width: var(--w); height: var(--h-lid); transform: translateZ(70px); }
+.cc-lid-back  { width: var(--w); height: var(--h-lid); transform: rotateY(180deg) translateZ(70px); }
+.cc-lid-left  { width: var(--d); height: var(--h-lid); transform: rotateY(-90deg) translateZ(70px); }
+.cc-lid-right { width: var(--d); height: var(--h-lid); transform: rotateY(90deg) translateZ(70px); }
+.cc-lid-top   { width: var(--w); height: var(--d); transform: rotateX(90deg) translateZ(70px); }
+.cc-lid-bottom {
+  width: var(--w); height: var(--d);
+  transform: rotateX(-90deg) translateZ(calc(var(--h-lid) - 70px));
+  background-color: var(--cc-panel-lo);
+  background-image: none;
+  border: 8px solid var(--cc-band);
+}
+
+/* Teal metal latch */
+.cc-latch {
+  position: absolute;
+  width: 20px;
+  height: 40px;
+  left: calc(50% - 10px);
+  top: calc(var(--h-lid) - 20px);
+  transform-style: preserve-3d;
+  transform: translateZ(75px);
+}
+.cc-latch-f {
+  position: absolute;
+  box-sizing: border-box;
+  background-color: var(--cc-latch-base);
+  border: 2px solid var(--cc-latch-outline);
+}
+.cc-latch-front {
+  width: 20px; height: 40px;
+  transform: translateZ(5px);
+  background: linear-gradient(
+    to bottom,
+    var(--cc-latch-light) 0px, var(--cc-latch-light) 10px,
+    var(--cc-latch-base) 10px, var(--cc-latch-base) 28px,
+    var(--cc-latch-dark) 28px
+  );
+}
+.cc-latch-back   { width: 20px; height: 40px; transform: rotateY(180deg) translateZ(5px); }
+.cc-latch-left   { width: 10px; height: 40px; left: 5px; transform: rotateY(-90deg) translateZ(10px); background: var(--cc-latch-dark); }
+.cc-latch-right  { width: 10px; height: 40px; left: 5px; transform: rotateY(90deg) translateZ(10px); background: var(--cc-latch-dark); }
+.cc-latch-top    { width: 20px; height: 10px; top: 15px; transform: rotateX(90deg) translateZ(20px); background: var(--cc-latch-light); }
+.cc-latch-bottom { width: 20px; height: 10px; top: 15px; transform: rotateX(-90deg) translateZ(20px); background: var(--cc-latch-dark); }
+
+/* Status text (uses the app font, not a monospace pixel font) */
+.cc-chest-text {
+  margin: 24px 0 0;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: transform 0.2s, color 0.2s;
+}
+.cc-file-input:hover ~ .cc-chest-text,
+.cc-chest-stage.is-dragover .cc-chest-text {
+  color: var(--brand-blue);
+  transform: translateY(-2px);
+}
+.cc-chest-stage[data-state="success"] .cc-chest-text { color: var(--success); }
+.cc-chest-stage[data-state="error"] .cc-chest-text { color: var(--danger); }
+
+/* Reduced motion: the lid still opens, but instantly. */
+@media (prefers-reduced-motion: reduce) {
+  .cc-lid, .cc-chest-text, .cc-chest-stage { transition: none !important; }
+}
+
+.reduce-motion .cc-lid,
+.reduce-motion .cc-chest-text,
+.reduce-motion .cc-chest-stage {
+  transition: none !important;
+}

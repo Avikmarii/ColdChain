@@ -1,0 +1,702 @@
+# Master Prompt v3: Cold-Chain Route Analysis Workbench
+
+## 0. Non-negotiables
+
+These override everything else, including the infographic's wording.
+
+1. **Honest provenance.** Every number is labeled demo data, simulated estimate, user-imported, or user-reported. Nothing is presented as a live sensor reading, live GPS, or a real routing-service result.
+2. **No safety claims.** Never write "safe", "safest", or "approved" about a shipment or route. Use "meets configured limits in this simulation" and "preferred under current assumptions". (The tagline "Plan safer, smarter cold-chain journeys." is the only exception.)
+3. **Uncalculated means blank.** Show "Not yet evaluated" until an analysis has run. Never show placeholder numbers.
+4. **One banner, everywhere results appear:** "Demo simulation: illustrative results only."
+5. **No dead controls.** Every visible button works, or is not rendered.
+6. **Frontend only.** No backend, IoT, live tracking, or production optimizer. The engine boundary in section 7 lets real services replace the demo ones later.
+7. **Works offline.** If map tiles fail, the rest of the app still works and a fallback panel appears.
+8. **Plain English.** Say "Temperature outside permitted range", not "thermal excursion event".
+9. **Delight stays calm.** Playful details (section 3.1 and the appendices) are allowed only where this prompt places them. Looping animation is allowed only in the AttentiveFace and only in empty, error, and not-found states. Everything stops under `prefers-reduced-motion`.
+
+## 1. Role and goal
+
+Act as a senior product designer and React engineer. Build **ColdChain Intelligence** (temporary brand label, kept in one constant), a premium, calm, light-gradient workspace for a **Logistics Manager** to create a temperature-sensitive shipment, compare candidate routes, see simulated temperature behaviour, test what-if scenarios, and read an explainable recommendation.
+
+Product framing: an **analysis workbench**, not a live operations manager. Core flow:
+
+Dashboard, New Shipment, Route Comparison, Results and Recommendation, What-If Scenarios, History.
+
+Route Comparison is the hero screen and gets the most visual attention. Keep the dashboard an overview. Driver and recipient interfaces are out of scope.
+
+## 2. Source precedence
+
+The attached infographic and this text disagree in places. Resolve conflicts like this:
+
+| Topic | Winner |
+|---|---|
+| Sidebar items and screen list | Infographic |
+| Screen layouts (map beside route cards, chart below, recommendation on its own screen) | Infographic |
+| Dashboard statistics | Infographic (simulation-centric) |
+| Visual theme, light and airy | This prompt. The infographic's dark navy sidebar becomes a white or very light sidebar with a pale lavender or blue active state |
+| Honesty wording and labels | This prompt (section 0) |
+| Tech stack and versions | This prompt (section 4) |
+
+## 3. Design system
+
+**Look:** clean, airy, modern, restrained. Reference points: Linear's calm density and Stripe's clarity. Light blue-to-lavender page background, white cards with thin borders and soft shadows, radius 12 to 18px, generous spacing. Gradients only on the page background, the primary button, selected nav items, and one or two highlight panels. No heavy blur, no dark surfaces (the only dark element is the inside of the Import Chest, see Appendix B).
+
+**Tokens (define as CSS variables in `styles/variables.css`, including these names so the appendices work):**
+
+- Backgrounds: `--bg-1: #F5F9FF`, `--bg-2: #F8F7FF`, `--surface: #FFFFFF`
+- Brand: `--brand-blue: #3978F6`, `--brand-blue-deep: #2457C5`, `--soft-blue: #E8F0FF`
+- Accents: `--teal: #22B8A7`, `--teal-pale: #E7FAF6`, `--lavender: #A78BFA`, `--lavender-pale: #F0EBFF`
+- Text: `--text-primary: #17243A`, `--text-secondary: #64748B`, `--text-muted: #94A3B8`
+- Border: `--border: #E5EAF3`
+- Status: `--success: #16A36A`, `--warning: #E9A23B`, `--danger: #E05260`
+- Font: `--font-sans: "Inter", system-ui, sans-serif`
+- Route colors: Route A blue `#3978F6`, Route B teal `#22B8A7`. Never use red or green for route identity, since those mean status.
+
+**Type:** Inter (or Manrope). Clear hierarchy, nothing tiny, nothing dense.
+
+**Icons:** Lucide React only, outline style, no emoji.
+
+**Motion:** short and purposeful (menus, hover, chart transitions, toasts). Respect `prefers-reduced-motion` everywhere. No decorative looping animation except as allowed in section 0, rule 9.
+
+**Accessibility:** semantic HTML, labeled inputs, visible focus rings, keyboard-operable everything, AA contrast. Status and risk always use a text label plus an icon, never color alone.
+
+### 3.1 Delight details (small, real, restrained)
+
+Implement these. Each one must be functional or purely visual, never misleading.
+
+1. **Time-aware greeting.** "Good morning / afternoon / evening, Manager" from the local clock.
+2. **Count-up stat cards.** Dashboard numbers count up once on first load (400 to 600ms). No repeat on re-render. Instant under reduced motion.
+3. **Sliding nav indicator.** The active sidebar item's highlight pill glides to the new item.
+4. **Draw-in on results.** After Run Demo Analysis, the temperature line draws in left to right (about 700ms), and the selected route polyline draws once on the map. The success check mark in the "Analysis completed" toast draws itself.
+5. **Skeleton shimmer** for loading states, short and subtle, replaced by content as soon as it is ready. Maximum 1.2 seconds in the demo.
+6. **Hatched excursion band.** On the chart, time outside the permitted range gets a soft diagonal-hatch fill (plus a legend entry) in addition to color.
+7. **Thermometer mercury micro-icon.** The risk badge (Low, Medium, High) shows a tiny thermometer whose fill level matches the label, together with the text.
+8. **Keyboard shortcut.** Press `/` to focus the top-bar search. Show a small `/` key hint inside the search field.
+9. **Copy shipment ID.** A small copy icon next to every shipment ID copies it and shows a toast ("CC-001 copied").
+10. **Press feedback.** Buttons scale to 0.98 on press. The primary button's gradient shifts slightly on hover.
+11. **Toast with progress.** Toasts slide in, show a thin countdown bar, and pause on hover.
+12. **AttentiveFace** (Appendix A): a friendly animated face for empty states, "no results" states, error states, and the not-found page. Not used anywhere else.
+13. **Import Chest** (Appendix B): the file-import widget on the History screen only.
+14. **Snowflake brand mark.** The sidebar logo is a simple abstract snowflake or crystal in the brand blue. It does not animate.
+
+## 4. Technical stack (pinned)
+
+- Node 20 or later, npm.
+- Vite, React 18.3.x, JavaScript, plain CSS (no UI framework, no Tailwind).
+- `react-router-dom` 6.x
+- `lucide-react`
+- `leaflet` 1.9.4 and `react-leaflet` 4.2.1 (v5 requires React 19, so stay on v4)
+- `recharts` 2.x for charts (needs shaded permitted-range band, tooltips, two series, and custom SVG patterns)
+- No other runtime dependencies (write the CSV parser yourself, see section 6.6). Dev dependencies: ESLint and Vitest only.
+
+**Known pitfall:** Leaflet's default marker icons break under Vite. Import the marker images explicitly and set `L.Icon.Default`, or use `L.divIcon` markers.
+
+If a project already exists, inspect it first and extend it. Do not replace a working project.
+
+## 5. Application shell and routes
+
+Responsive shell: left sidebar, compact top bar, main content with a max width.
+
+**Sidebar** (light, collapsible on desktop, slide-out drawer on mobile). Brand mark at the top. Items: Dashboard, New Shipment, Analysis, Scenarios, History. Settings at the bottom.
+
+**Top bar:** page title or breadcrumb, search (filters shipments by name or ID and navigates to the match; `/` focuses it), notifications panel (demo items, labeled as such), help popover, profile menu (Profile, Preferences, Sign Out). These are demo-only and must not pretend to authenticate.
+
+**Routes:**
+
+| Path | Screen |
+|---|---|
+| `/` | Dashboard |
+| `/shipments/new` | Create Shipment. `/shipments/:id/edit` edits an existing one |
+| `/shipments/:id` | Shipment Details (reached from rows; not a sidebar item) |
+| `/shipments/:id/analysis` | Route Comparison and Simulation (hero) |
+| `/shipments/:id/results` | Detailed Results and Recommendation |
+| `/shipments/:id/scenarios` | What-If Scenario Simulator |
+| `/analysis`, `/scenarios` | **Shipment picker** state: "Choose a shipment to analyse" with a list of shipments and a New Shipment button |
+| `/history` | History and Reports (Screen 6) |
+| `/settings` | Settings (see section 6.7) |
+| `*` | Not-found page with the AttentiveFace and a way home |
+
+Back and forward must work. Unknown shipment IDs show a friendly not-found state, not a crash.
+
+## 6. Screens
+
+### 6.1 Dashboard
+
+- Greeting (time-aware, see 3.1) and the line "Plan safer, smarter cold-chain journeys." plus a "Demo Environment" pill.
+- Primary button **+ New Shipment Analysis**, which goes to `/shipments/new`.
+- Three or four compact stat cards: **Simulations Run**, **Routes Evaluated**, **Excursions Flagged (demo)**, optionally **Drafts**. Computed from shipment state, not hard-coded in JSX.
+- **Recent Analyses** table (ID, name, origin to destination, status, last updated, View Results). Rows open the shipment. "View all" goes to History. On mobile the rows become stacked cards.
+- One compact **Attention** list (for example "CC-001 awaiting route evaluation"), labeled as illustrative.
+- Empty state when there are no shipments: AttentiveFace, "No shipments yet.", "Create your first shipment to begin evaluating transportation routes.", and a Create Shipment button.
+
+### 6.2 Create Shipment
+
+Guided, grouped form with four sections.
+
+- **A. Shipment details:** name (required), auto-generated ID (`CC-###`, read-only), product category (Vaccine, Medical Supplies, Temperature-Sensitive Food, Pharmaceutical Product, Other), optional description.
+- **B. Journey:** origin and destination (required; dropdown of the demo cities, see section 8; free text allowed but must warn "No route data for this pair" and block analysis), departure date and time, maximum acceptable transit time (hours).
+- **C. Temperature requirements:** min, max, unit (Celsius), limits source or reference, optional notes. Offer a **"Demo preset 2 to 8 C"** chip that fills the values and labels them "Demo assumption". Helper text: limits must come from the product's own specification. Validate min < max and numeric range. Never silently assume a category implies a range.
+- **D. Container and cooling (model inputs for a future simulation, not measurements):** insulation (Basic, Moderate, High), cooling (Active refrigerated, Passive), optional notes. Use sensible defaults so no engineering input is required.
+
+Buttons: Cancel, Save Draft, **Generate Route Analysis** (validates, saves, then navigates to `/shipments/:id/analysis`). Inline errors, focus on the first invalid field, no `alert()`. Values persist when navigating away and back (see section 9).
+
+### 6.3 Route Comparison and Simulation (hero screen, `/shipments/:id/analysis`)
+
+**Layout (desktop):** header strip on top (shipment name, origin to destination, analysis status, Edit Shipment, **Run Demo Analysis**). Below, a two-column grid: **map on the left (about 60%)**, **two route cards stacked on the right**. Below the grid, full width: **Simulated Temperature Over Time** chart for the selected route with a small summary row. On tablet, stack map above cards. On mobile, a single column with the cards before the map.
+
+- **Map:** Leaflet with OSM tiles, origin and destination markers, two polylines in Route A and Route B colors, selected route drawn thicker, legend, zoom controls. Polylines come from bundled precomputed geometry (section 8) and are captioned "Illustrative route geometry". Clicking a polyline or marker selects the route and shows a small popup. If tiles fail, show a tile-less panel with the same polylines on a plain background and the note "Map tiles unavailable".
+- **Route cards:** name, distance, estimated travel time, simulation status. Before analysis: "Awaiting simulation." After: thermal-risk label (Low, Medium, High, each with the mercury micro-icon and text), excursion status, and View Details. Selecting a card highlights it and the map route, and they stay synchronized.
+- **Chart:** time in hours on x, degrees C on y, the simulated trend line, upper and lower limit lines, a shaded permitted band, tooltips with elapsed time and temperature. Series named "Simulated estimate". Before analysis, show an informative placeholder. Excursion segments use the hatched band and a legend entry.
+- **Summary row:** max simulated temperature, min simulated temperature, excursion count, total minutes outside range, constraint status. Each shows "Not yet evaluated" until analysis runs.
+- States: loading (skeleton shimmer while the engine runs), empty, and error (AttentiveFace plus Retry).
+- After a run, a link or button goes to **View Detailed Results**.
+
+### 6.4 Detailed Results and Recommendation (`/shipments/:id/results`)
+
+Two route result cards side by side (distance, travel time, max and min simulated temperature, excursions, constraint status, View Temperature Graph) and a **Recommendation panel**.
+
+The Recommendation panel shows: preferred route (or "No feasible route found under the current assumptions."), reasons as a checklist, trade-offs (for example "20 minutes longer"), detected simulated excursions, and a **Limitations** list (demo model, unvalidated inputs, no live data). Wording example: "Route B is preferred in this demo because it meets the configured limits and has a lower simulated excursion risk under the selected assumptions." Generate this text only from engine output. Buttons: Test What-If Scenarios, Save to History (sets status), Back to Analysis.
+
+### 6.5 What-If Scenario Simulator (`/shipments/:id/scenarios`)
+
+Two columns on desktop, stacked on mobile.
+
+- **Left, controls:** route select, additional delay slider (0 to 180 min, step 5), ambient temperature slider (15 to 45 C), cooling interruption toggle, interruption duration (0 to 120 min, shown only when the toggle is on), optional insulation preset. Current value displayed beside every control, with a one-line plain-English hint. Controls update state instantly. Buttons: **Run Scenario**, **Reset**, **Compare Against Baseline**.
+- **Right, results:** Baseline vs Modified cards (journey time, max temperature, outside-range status), a comparison chart with both curves on one fixed y-axis and labeled "Baseline" and "Modified", and a one-sentence explanation of what changed. Use hedged language ("under these model assumptions"). Never promise that a delay will cause an excursion.
+- Baseline here must equal the Route Analysis result for the same route and inputs.
+
+### 6.6 Screen 6: History and Reports (`/history`)
+
+**Layout (desktop):** header (title, short description, **Export CSV** button). Below, a two-column grid: **left (about 70%)** holds the filter bar and the results table; **right (about 30%)** holds an **Import card** containing the **Import Chest** (Appendix B) with a short instruction line underneath. On tablet and mobile the Import card collapses into a titled, collapsible section above the table, closed by default.
+
+**Filters:** search box, status filter, product category filter, optional date filter. All work together. Table columns: ID (with copy icon), name, route, category, status, date, provenance tag (Demo, Simulated, or Imported). Rows open Shipment Details. On mobile, rows become cards. No results: AttentiveFace with "No matching shipments." and a Clear filters button.
+
+**Export CSV** downloads a real file with the columns `id,name,category,route,status,date,provenance`. Guard against spreadsheet formula injection by prefixing any cell that begins with `=`, `+`, `-`, or `@` with a single quote. Do not show a PDF button.
+
+**Import (the Import Chest):** accepts a `.csv` produced by the Export button above (same columns, header row required).
+
+- Parse with your own small CSV parser (quoted fields, commas, newlines inside quotes). Limits: file at most 1 MB, at most 500 rows. Treat every cell as plain text and never render it as HTML.
+- Required columns: `id,name,category,route,status,date`. A missing column rejects the file with a clear message.
+- Row validation: non-empty id and name, a category from the allowed list (otherwise "Other"), a status from the allowed list (otherwise "Draft"), a parseable date. Skip duplicate IDs (including IDs already in the app) and invalid rows.
+- Imported rows become shipment records with `isDemoRecord: false`, `source: "imported"`, provenance **"User-imported (unverified)"**, no analysis results, and an activity entry "Imported from CSV". Never create simulated values for them.
+- Show a result summary in a toast ("Imported 5 records, skipped 2") and an expandable "Skipped rows" list with the reason for each (inline in the Import card, not a modal).
+- Chest states are driven by React state: idle, drag-over, importing, success, error (see Appendix B). Drag-and-drop works as well as click.
+- Imported records persist in localStorage like all others, and a **Remove imported records** link in the Import card clears only them (with a confirmation modal).
+
+### 6.7 Shipment Details and Settings (compact)
+
+- **Shipment Details:** identity (with copy icon), journey, product category, temperature limits (with source and a Demo assumption tag where applicable), container assumptions, selected route, status, latest activity (from the activity log), analysis summary if present, provenance tag. Actions depend on status: Continue Planning, View Route Analysis, View Results, Edit Shipment, Run Scenarios. Optional **Assign Driver** opens a small modal that says "Demo only: no driver system connected".
+- **Settings:** brand label, temperature unit (Celsius only for now), a **Reduce motion** toggle that overrides the system setting (defaults to the system value), and a **Reset demo data** button with a confirmation modal.
+
+## 7. Engine boundary (the most important architectural rule)
+
+All analysis goes through `src/engine/`. UI components never compute temperatures. They call one function and render its output.
+
+```js
+// engine/index.js
+analyzeRoute({ shipment, route, scenario }) => AnalysisResult   // may be async
+
+// AnalysisResult
+{
+  routeId: "route-a",
+  scenario: { extraDelayMin: 0, ambientC: 32, coolingInterruptionMin: 0 },
+  travelTimeMin: 180,
+  series: [{ tMin: 0, tempC: 4.0 }, ...],          // regular spacing, at least 24 points
+  limits: { minC: 2, maxC: 8 },
+  excursions: [{ startMin: 120, endMin: 135, peakC: 9.1 }],
+  maxC: 9.1, minC: 3.8,
+  minutesOutOfRange: 15,
+  constraintStatus: "fails" | "meets" | "not_evaluated",
+  riskLevel: "low" | "medium" | "high",
+  provenance: "demo-simulated",                      // never "measured"
+  modelVersion: "demo-0.1"
+}
+
+// engine/routeScorer.js
+rankRoutes(results[], constraints) => {
+  preferredRouteId: string | null,                   // null means no feasible route
+  reasons: string[], tradeoffs: string[], limitations: string[]
+}
+```
+
+Files: `thermalModel.js`, `excursionDetector.js`, `routeScorer.js`, `scenarioEngine.js`, `index.js`. A future real engine or API client replaces `engine/index.js` and nothing else.
+
+**Model rule:** `thermalModel.js` is a small, deterministic, transparent function (a simple lumped heat-gain curve driven by ambient temperature, insulation preset, cooling mode, travel time, and interruptions). Document its formula in a comment and label it "demo-0.1, not a validated thermal model". No randomness. Calibrate its presets so the golden path in section 8 reproduces within 0.1 C and 1 minute. If calibration cannot hit the golden numbers, use fixture lookup for the golden path only, and keep the model for all other inputs. Say so in the README.
+
+## 8. Seed data and golden path
+
+Keep data in `src/data/` (`demoShipments.js`, `demoRoutes.js`, `routeGeometry.js`, `demoScenarios.js`). Do not inline data in JSX.
+
+**Cities with bundled route geometry:** Bengaluru to Mysuru, Chennai, Hyderabad, Pune, and Delhi to Jaipur. Each pair has two candidate routes with a precomputed simplified polyline (30 to 80 points) stored as static data, labeled "Illustrative route geometry". Never draw a straight line and call it a road. Never call a live routing service.
+
+**Shipment record:**
+
+```js
+{
+  id, name, category, description,
+  origin, destination,
+  departureDateTime, maxTransitHours,
+  temperatureLimits: { minC, maxC, unit: "C", source, isDemoAssumption },
+  container: { insulation, coolingSystem, notes },
+  status,            // "Draft" | "Analyzed" | "Recommended" | "No Feasible Route"
+  selectedRouteId, assignedDriver,   // assignedDriver is demo-only
+  analysis,          // { [routeId]: AnalysisResult, ranking }
+  activity: [{ at, text, provenance }],
+  isDemoRecord,      // true for seeds, false for user-created and imported
+  source,            // "demo" | "user" | "imported"
+  createdAt, updatedAt
+}
+```
+
+**Status transitions:** save without analysis gives Draft. Run Demo Analysis gives Analyzed, then Recommended if the scorer picks a route, or No Feasible Route if it returns null. Editing temperature or container inputs on an analyzed shipment resets it to Draft and clears stale results, with a toast explaining why.
+
+**Golden path (CC-001, Vaccine Delivery 001, Bengaluru to Mysuru, 2 to 8 C demo preset, Moderate insulation, Active cooling, ambient 32 C):**
+
+| | Route A (faster) | Route B |
+|---|---|---|
+| Distance | 145 km | 165 km |
+| Travel time | 3 h 0 m | 3 h 20 m |
+| Max simulated temperature | 9.1 C | 6.2 C |
+| Excursions | 1 (15 min) | None |
+| Risk label | Medium | Low |
+| Constraint status | Does not meet limit | Meets configured limits |
+
+Result: Route B preferred, with the reason "no simulated excursions, lower thermal risk, 20 minutes longer".
+
+**Scenario case on Route A:** baseline 3 h 0 m, max 7.2 C, no excursions. Modified (delay 30 min, ambient 35 C, cooling interruption on): 3 h 30 m, max 10.5 C, excursion about 25 min. Treat these as test fixtures for the engine.
+
+**Seed shipments:** CC-001 (above, Draft, so the demo starts with a fresh analysis), CC-002 Medical Supply 002 Bengaluru to Chennai (Analyzed), CC-003 Pharmaceutical Delivery 003 Bengaluru to Hyderabad (Recommended), and one **seeded No Feasible Route** shipment (for example CC-004, Bengaluru to Pune, Basic insulation, Passive cooling, narrow limits) so that state is exercised. All carry `isDemoRecord: true` and show a "Demo" tag.
+
+## 9. State and persistence
+
+- React Context plus `useReducer` in `context/ShipmentContext.jsx`. No state library.
+- Persist shipments, drafts, imported records, settings, and the in-progress form to `localStorage` under a versioned key (for example `coldchain:v1`). Wrap reads and writes in try/catch, tolerate corrupt data by falling back to seed data, and provide Reset demo data in Settings.
+- IDs are stable strings. Never look anything up by array index.
+- Toasts (not alerts) for: draft saved, shipment saved, analysis completed, scenario updated, CSV exported, CSV imported, ID copied, validation errors. Auto-dismiss, `aria-live` polite, at most two visible.
+
+## 10. Project structure
+
+```
+src/
+  components/
+    layout/     AppLayout, Sidebar, Topbar
+    common/     Button, StatusBadge, StatCard, Modal, Toast, EmptyState, LoadingState,
+                ProvenanceBanner, AttentiveFace, CopyId, RiskBadge
+    shipments/  ShipmentForm, ShipmentTable, ShipmentCard, ShipmentDetails
+    analysis/   RouteMap, RouteCard, RouteComparison, TemperatureChart, AnalysisSummary, RecommendationPanel
+    scenarios/  ScenarioControls, ScenarioComparison
+    history/    ImportChest, ImportResult
+  pages/        Dashboard, CreateShipment, RouteAnalysis, Results, ScenarioSimulator,
+                ShipmentDetailsPage, History, Settings, ShipmentPicker, NotFound
+  engine/       thermalModel, excursionDetector, routeScorer, scenarioEngine, index
+  data/         demoShipments, demoRoutes, routeGeometry, demoScenarios
+  context/      ShipmentContext
+  utils/        validation, formatters, exportCsv, importCsv
+  styles/       variables.css, global.css, layout.css, components.css, face.css, chest.css
+  App.jsx, main.jsx
+```
+
+No empty placeholder files. Keep components small and reusable, and avoid giant page components.
+
+## 11. Responsive requirements
+
+- Desktop: persistent sidebar, map and cards side by side, History with the Import card on the right.
+- Tablet: compact icon sidebar, stacked panels where two columns get cramped.
+- Mobile: drawer navigation, single column, full-width inputs, tap targets of at least 44px, tables turn into cards, the chart stays readable, modals fit the viewport, Import card collapses.
+- No horizontal page scroll at 375px width.
+
+## 12. Build stages (stop after each and report)
+
+At the end of each stage, run `npm run build` and `npm run lint`, fix errors, and give a short summary of what works and what remains. Do not start the next stage until the checkpoint passes and I say "continue".
+
+1. **Foundation and Dashboard.** Vite project, tokens, shell, sidebar (with sliding indicator), top bar (with `/` shortcut), router with all paths (stubs allowed only for later stages), context with seed data and localStorage, dashboard with time-aware greeting, count-up stats, and AttentiveFace empty state (Appendix A). *Checkpoint: navigation, mobile drawer, dashboard rows, and the empty state all work.*
+2. **Create Shipment.** Full form, validation, draft save, edit mode, persistence, Generate Route Analysis navigation. *Checkpoint: create, reload the page, edit, and values persist.*
+3. **Engine and Route Comparison.** Engine modules with tests for the golden path, geometry data, map, route cards with RiskBadge, chart with hatched excursion band and draw-in, summary row, Run Demo Analysis with skeleton loading and error states. *Checkpoint: CC-001 reproduces the section 8 numbers.*
+4. **Results and Scenarios.** Results page with recommendation panel, scenario simulator with baseline comparison, the seeded No Feasible Route case. *Checkpoint: the scenario fixture reproduces 10.5 C and a 25 minute excursion, and baseline matches the analysis page.*
+5. **History (Screen 6), Details, Settings, Polish.** Search and filters, Export CSV, Import Chest with CSV import (Appendix B), details page, driver modal, settings, notifications, toasts, copy-ID, accessibility and responsive pass, README.
+
+## 13. Acceptance criteria (testable)
+
+- `npm run build` and `npm run lint` finish with zero errors, and the browser console shows zero errors and warnings on every route.
+- Vitest passes for: the engine (golden-path numbers, scenario fixture, scorer returning null when all routes fail, baseline equals analysis output), CSV export (formula-injection guard), and CSV import (valid file, missing column, duplicate IDs, oversized file, malformed quotes).
+- Export then import round trip: exporting from History and importing the same file skips all rows as duplicates, and importing it after "Remove imported records" plus a reset restores nothing unexpected.
+- Imported records show "User-imported (unverified)", never show simulated values, and never use the Demo tag.
+- No horizontal overflow at 375px, 768px, and 1280px.
+- A keyboard-only user can create a shipment, run an analysis, open the results page, and open the file picker on the Import Chest (it shows a visible focus ring and opens the lid on focus).
+- With `prefers-reduced-motion` on, the AttentiveFace and all other loops are static, and the chest lid still opens and closes without animation.
+- With the network disabled, the app loads, the map shows its fallback, and every flow still works.
+- Reloading the page keeps shipments, drafts, and imports. Reset demo data restores the seeds.
+- A manual grep finds no occurrence of "safe" or "safest" in user-facing strings other than the tagline and negations, and no result is shown without the provenance banner or a tag.
+- Every nav item, button, row, and link leads somewhere or does something. Invalid shipment IDs show the not-found state.
+- Lighthouse accessibility score of 90 or higher on Dashboard, Create Shipment, Route Analysis, and History.
+
+## 14. Deliverables
+
+- The working app in the current project folder.
+- `README.md` covering: how to run it, folder map, the engine contract, exactly where to plug in a real simulation engine and a real routing service, the CSV import format, the golden-path walkthrough for demos, and known limitations.
+
+## 15. How to work
+
+Inspect before you change. Prefer finishing a coherent workflow over polishing secondary screens. When something is ambiguous, pick the simplest option that satisfies section 0, state your assumption in one line, and continue. If an external service or asset is unavailable, implement the demo fallback rather than letting the app break. Do not respond with plans or snippets only: write the files, run the checks, and report results.
+
+---
+
+# Appendix A: AttentiveFace (animated empty and error states)
+
+**Where:** empty states (no shipments, no search results, empty picker), error states, and the not-found page. Nowhere else. Size 140 to 180px. Always accompany it with a text message, because the face is decoration (`aria-hidden="true"` on the SVG).
+
+**Component:** `components/common/AttentiveFace.jsx` renders:
+
+```jsx
+<div className="cc-face-wrap">
+  <svg className="face" viewBox="0 0 320 380" fill="none" stroke="currentColor"
+       strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <g className="face__eyes">
+      <g transform="translate(105 120)">
+        <path className="face__eye-lid" d="M-26 -22h52" />
+        <path className="face__pupil" d="M0 -6v35" pathLength="35" strokeDasharray="35" />
+      </g>
+      <g transform="translate(215 120)">
+        <path className="face__eye-lid" d="M-26 -22h52" />
+        <path className="face__pupil" d="M0 -6v35" pathLength="35" strokeDasharray="35" />
+      </g>
+    </g>
+    <path className="face__nose" d="M160 150v38h-16" />
+    <path className="face__mouth-left" d="M160 290C140 308 112 308 92 282" pathLength="102" strokeDasharray="102" />
+    <path className="face__mouth-right" d="M160 290C180 308 208 308 228 282" pathLength="102" strokeDasharray="102" />
+  </svg>
+</div>
+```
+
+This SVG is a starting skeleton built to match the class names and numbers in the CSS below (pupil dash length 35, mouth dash length 102 via `pathLength`). Render it, look at it, and adjust the path coordinates until it reads as a friendly face whose eyes rise into place, whose nose and smile draw in, whose pupils glance left and blink every 4 seconds. If parts appear outside the face, set `overflow: hidden` on the SVG. Keep the class names unchanged.
+
+**`styles/face.css`:**
+
+```css
+.cc-face-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: var(--face-h, 200px);
+  background: transparent;
+  color: var(--brand-blue-deep);
+}
+
+.cc-face-wrap .face {
+  width: var(--face-w, 160px);
+}
+
+.cc-face-wrap .face__eyes,
+.cc-face-wrap .face__eye-lid,
+.cc-face-wrap .face__mouth-left,
+.cc-face-wrap .face__mouth-right,
+.cc-face-wrap .face__nose,
+.cc-face-wrap .face__pupil {
+  animation: cc-eyes 1s 0.3s forwards;
+}
+
+.cc-face-wrap .face__eye-lid,
+.cc-face-wrap .face__pupil {
+  animation-duration: 4s;
+  animation-delay: 1.3s;
+  animation-iteration-count: infinite;
+}
+
+.cc-face-wrap .face__eye-lid { animation-name: cc-eye-lid; }
+.cc-face-wrap .face__mouth-left { animation-name: cc-mouth-left; }
+.cc-face-wrap .face__mouth-right { animation-name: cc-mouth-right; }
+.cc-face-wrap .face__nose { animation-name: cc-nose; }
+.cc-face-wrap .face__pupil { animation-name: cc-pupil; }
+
+@keyframes cc-eye-lid {
+  0%, 40%, 45%, 100% { transform: translateY(0); }
+  42.5% { transform: translateY(17.5px); }
+}
+@keyframes cc-eyes {
+  from { transform: translateY(112.5px); }
+  to { transform: translateY(15px); }
+}
+@keyframes cc-pupil {
+  0%, 37.5%, 40%, 45%, 87.5%, 100% { stroke-dashoffset: 0; transform: translate(0, 0); }
+  12.5%, 25%, 62.5%, 75% { transform: translate(-35px, 0); }
+  42.5% { stroke-dashoffset: 35; transform: translate(0, 17.5px); }
+}
+@keyframes cc-mouth-left {
+  from, 50% { stroke-dashoffset: -102; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes cc-mouth-right {
+  from, 50% { stroke-dashoffset: 102; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes cc-nose {
+  from { transform: translate(0, 0); }
+  to { transform: translate(0, 22.5px); }
+}
+
+/* Reduced motion: no animation, show the final resting face. */
+@media (prefers-reduced-motion: reduce) {
+  .cc-face-wrap .face__eyes,
+  .cc-face-wrap .face__eye-lid,
+  .cc-face-wrap .face__mouth-left,
+  .cc-face-wrap .face__mouth-right,
+  .cc-face-wrap .face__nose,
+  .cc-face-wrap .face__pupil { animation: none; }
+  .cc-face-wrap .face__eyes { transform: translateY(15px); }
+  .cc-face-wrap .face__nose { transform: translate(0, 22.5px); }
+  .cc-face-wrap .face__mouth-left,
+  .cc-face-wrap .face__mouth-right { stroke-dashoffset: 0; }
+}
+```
+
+The Settings "Reduce motion" toggle adds a `reduce-motion` class on `<html>`. Duplicate the reduced-motion rules under `.reduce-motion .cc-face-wrap ...` so the manual override works too.
+
+# Appendix B: Import Chest (Screen 6)
+
+**What it is:** a 3D "cold-storage crate" file input, restyled from a pixel-art chest to the app's light theme: frosted white-and-blue panels, brand-blue bands, a teal latch, and a dark navy interior with a teal glow. Hovering, focusing, or dragging a file over it opens the lid. Clicking opens the file picker. It is the real control for importing a CSV (see section 6.6), not decoration.
+
+**Markup (`components/history/ImportChest.jsx`).** The file input must come before the chest and the text in the DOM, because the CSS uses sibling selectors.
+
+```jsx
+<div className="cc-import">
+  <div className={`cc-chest-stage ${isDragOver ? "is-dragover" : ""}`} data-state={state}
+       onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
+    <input type="file" className="cc-file-input" accept=".csv,text/csv"
+           aria-label="Import a report CSV" onChange={onFile} />
+    <div className="cc-chest" aria-hidden="true">
+      <div className="cc-part cc-base">
+        {["front","back","left","right","bottom","top"].map(s =>
+          <div key={s} className={`cc-side cc-base-${s}`} />)}
+      </div>
+      <div className="cc-part cc-lid">
+        {["front","back","left","right","bottom","top"].map(s =>
+          <div key={s} className={`cc-side cc-lid-${s}`} />)}
+        <div className="cc-latch">
+          {["front","back","left","right","top","bottom"].map(s =>
+            <div key={s} className={`cc-latch-f cc-latch-${s}`} />)}
+        </div>
+      </div>
+    </div>
+    <p className="cc-chest-text" aria-live="polite">{label}</p>
+  </div>
+</div>
+```
+
+Labels by state: idle "Drop a report CSV or click", drag-over "Release to import", importing "Reading file...", success "Imported 5 records", error "Could not import". After success or error, return to idle after 4 seconds, and show details in the Import result list underneath. Keep the lid open while importing (add `is-dragover`-equivalent class `is-busy`).
+
+**`styles/chest.css`:**
+
+```css
+.cc-import {
+  --w: 140px;
+  --d: 140px;
+  --h-base: 100px;
+  --h-lid: 40px;
+  --chest-scale: 0.8;
+
+  --cc-panel: #F4F8FF;
+  --cc-panel-hi: #FFFFFF;
+  --cc-panel-lo: #DCE8FB;
+  --cc-band: var(--brand-blue);
+  --cc-band-deep: var(--brand-blue-deep);
+  --cc-void: #0F1B30;
+  --cc-glow: rgba(34, 184, 167, 0.55);
+
+  --cc-latch-light: #B8F0E8;
+  --cc-latch-base: var(--teal);
+  --cc-latch-dark: #17897D;
+  --cc-latch-outline: #0E5F57;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.cc-chest-stage {
+  position: relative;
+  width: 100%;
+  max-width: 260px;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  perspective: 1200px;
+  border-radius: 16px;
+  transition: box-shadow 0.2s, background 0.2s;
+}
+.cc-chest-stage:focus-within,
+.cc-chest-stage.is-dragover {
+  background: var(--soft-blue);
+  box-shadow: 0 0 0 3px rgba(57, 120, 246, 0.35);
+}
+
+/* Invisible real file input covering the whole stage */
+.cc-file-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  z-index: 100;
+  cursor: pointer;
+}
+
+.cc-chest {
+  position: relative;
+  width: var(--w);
+  height: calc(var(--h-base) + var(--h-lid));
+  transform-style: preserve-3d;
+  transform: scale(var(--chest-scale)) rotateX(-24deg) rotateY(-40deg);
+  pointer-events: none;
+}
+
+.cc-part {
+  position: absolute;
+  left: 0;
+  width: var(--w);
+  transform-style: preserve-3d;
+}
+.cc-base { top: var(--h-lid); height: var(--h-base); }
+.cc-lid {
+  top: 0;
+  height: var(--h-lid);
+  transform-origin: 50% var(--h-lid) -70px;
+  transition: transform 0.45s cubic-bezier(0.2, 1.2, 0.4, 1);
+}
+
+/* Lid opens on hover, keyboard focus, drag-over, and while busy */
+.cc-file-input:hover ~ .cc-chest .cc-lid,
+.cc-file-input:focus-visible ~ .cc-chest .cc-lid,
+.cc-chest-stage.is-dragover .cc-lid,
+.cc-chest-stage[data-state="importing"] .cc-lid {
+  transform: rotateX(100deg);
+}
+.cc-file-input:active ~ .cc-chest .cc-lid { transform: rotateX(110deg); }
+
+/* Frosted crate panels with soft plank lines and brand-blue bands */
+.cc-side {
+  position: absolute;
+  box-sizing: border-box;
+  background-color: var(--cc-panel);
+  border: 8px solid var(--cc-band);
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      var(--cc-panel-hi) 0px, var(--cc-panel-hi) 3px,
+      transparent 3px, transparent 18px,
+      var(--cc-panel-lo) 18px, var(--cc-panel-lo) 20px
+    ),
+    repeating-linear-gradient(
+      to right,
+      transparent 0px, transparent 10px,
+      rgba(57, 120, 246, 0.05) 10px, rgba(57, 120, 246, 0.05) 20px
+    );
+}
+
+/* Gentle directional lighting (kept light so the theme stays airy) */
+.cc-base-front, .cc-lid-front { filter: brightness(1); }
+.cc-base-left,  .cc-lid-left  { filter: brightness(0.96); }
+.cc-base-right, .cc-lid-right { filter: brightness(0.9); }
+.cc-base-back,  .cc-lid-back  { filter: brightness(0.82); }
+.cc-lid-top { filter: brightness(1.04); }
+
+/* Base geometry */
+.cc-base-front  { width: var(--w); height: var(--h-base); transform: translateZ(70px); }
+.cc-base-back   { width: var(--w); height: var(--h-base); transform: rotateY(180deg) translateZ(70px); }
+.cc-base-left   { width: var(--d); height: var(--h-base); transform: rotateY(-90deg) translateZ(70px); }
+.cc-base-right  { width: var(--d); height: var(--h-base); transform: rotateY(90deg) translateZ(70px); }
+.cc-base-bottom {
+  width: var(--w); height: var(--d);
+  transform: rotateX(-90deg) translateZ(calc(var(--h-base) - 70px));
+  background: var(--cc-band-deep);
+}
+/* Hollow, softly glowing inside */
+.cc-base-top {
+  width: var(--w); height: var(--d);
+  transform: rotateX(90deg) translateZ(70px);
+  background-color: var(--cc-void);
+  background-image: none;
+  box-shadow: inset 0 0 40px var(--cc-glow);
+}
+
+/* Lid geometry */
+.cc-lid-front { width: var(--w); height: var(--h-lid); transform: translateZ(70px); }
+.cc-lid-back  { width: var(--w); height: var(--h-lid); transform: rotateY(180deg) translateZ(70px); }
+.cc-lid-left  { width: var(--d); height: var(--h-lid); transform: rotateY(-90deg) translateZ(70px); }
+.cc-lid-right { width: var(--d); height: var(--h-lid); transform: rotateY(90deg) translateZ(70px); }
+.cc-lid-top   { width: var(--w); height: var(--d); transform: rotateX(90deg) translateZ(70px); }
+.cc-lid-bottom {
+  width: var(--w); height: var(--d);
+  transform: rotateX(-90deg) translateZ(calc(var(--h-lid) - 70px));
+  background-color: var(--cc-panel-lo);
+  background-image: none;
+  border: 8px solid var(--cc-band);
+}
+
+/* Teal metal latch */
+.cc-latch {
+  position: absolute;
+  width: 20px;
+  height: 40px;
+  left: calc(50% - 10px);
+  top: calc(var(--h-lid) - 20px);
+  transform-style: preserve-3d;
+  transform: translateZ(75px);
+}
+.cc-latch-f {
+  position: absolute;
+  box-sizing: border-box;
+  background-color: var(--cc-latch-base);
+  border: 2px solid var(--cc-latch-outline);
+}
+.cc-latch-front {
+  width: 20px; height: 40px;
+  transform: translateZ(5px);
+  background: linear-gradient(
+    to bottom,
+    var(--cc-latch-light) 0px, var(--cc-latch-light) 10px,
+    var(--cc-latch-base) 10px, var(--cc-latch-base) 28px,
+    var(--cc-latch-dark) 28px
+  );
+}
+.cc-latch-back   { width: 20px; height: 40px; transform: rotateY(180deg) translateZ(5px); }
+.cc-latch-left   { width: 10px; height: 40px; left: 5px; transform: rotateY(-90deg) translateZ(10px); background: var(--cc-latch-dark); }
+.cc-latch-right  { width: 10px; height: 40px; left: 5px; transform: rotateY(90deg) translateZ(10px); background: var(--cc-latch-dark); }
+.cc-latch-top    { width: 20px; height: 10px; top: 15px; transform: rotateX(90deg) translateZ(20px); background: var(--cc-latch-light); }
+.cc-latch-bottom { width: 20px; height: 10px; top: 15px; transform: rotateX(-90deg) translateZ(20px); background: var(--cc-latch-dark); }
+
+/* Status text (uses the app font, not a monospace pixel font) */
+.cc-chest-text {
+  margin: 24px 0 0;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: transform 0.2s, color 0.2s;
+}
+.cc-file-input:hover ~ .cc-chest-text,
+.cc-chest-stage.is-dragover .cc-chest-text {
+  color: var(--brand-blue);
+  transform: translateY(-2px);
+}
+.cc-chest-stage[data-state="success"] .cc-chest-text { color: var(--success); }
+.cc-chest-stage[data-state="error"] .cc-chest-text { color: var(--danger); }
+
+/* Reduced motion: the lid still opens, but instantly. */
+@media (prefers-reduced-motion: reduce) {
+  .cc-lid, .cc-chest-text, .cc-chest-stage { transition: none; }
+}
+```
+
+Also duplicate the reduced-motion rules under `.reduce-motion` (the Settings toggle). On touch devices, which have no hover, the lid opens on tap-down (`:active`) while the file picker opens, and on drag-over where supported. Because the chest is purely visual, the real input handles accessibility: it needs the `aria-label`, a visible focus ring on the stage, and Enter or Space to open the picker.
+
+---
+
+START NOW with Stage 1 only. Stop at its checkpoint, report results, and wait for me to say "continue" before Stage 2.

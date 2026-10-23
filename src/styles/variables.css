@@ -1,0 +1,60 @@
+:root {
+  /* Backgrounds */
+  --bg-1: #F5F9FF;
+  --bg-2: #F8F7FF;
+  --surface: #FFFFFF;
+  --surface-subtle: #F8FAFC;
+
+  /* Brand */
+  --brand-blue: #3978F6;
+  --brand-blue-deep: #2457C5;
+  --brand-blue-light: #5A91FA;
+  --soft-blue: #E8F0FF;
+
+  /* Accents */
+  --teal: #22B8A7;
+  --teal-deep: #17897D;
+  --teal-pale: #E7FAF6;
+  --lavender: #A78BFA;
+  --lavender-pale: #F0EBFF;
+
+  /* Text */
+  --text-primary: #17243A;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+
+  /* Border & Dividers */
+  --border: #E5EAF3;
+  --border-focus: #3978F6;
+
+  /* Status */
+  --success: #16A36A;
+  --success-pale: #EDFDF5;
+  --warning: #E9A23B;
+  --warning-pale: #FFF8EB;
+  --danger: #E05260;
+  --danger-pale: #FEF2F3;
+
+  /* Route Colors */
+  --route-a: #3978F6;
+  --route-b: #22B8A7;
+
+  /* Typography */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Radii & Shadows */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 18px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 3px rgba(23, 36, 58, 0.04), 0 1px 2px rgba(23, 36, 58, 0.02);
+  --shadow-md: 0 4px 12px rgba(23, 36, 58, 0.05), 0 2px 4px rgba(23, 36, 58, 0.03);
+  --shadow-lg: 0 12px 28px rgba(23, 36, 58, 0.07), 0 4px 8px rgba(23, 36, 58, 0.03);
+  --shadow-focus: 0 0 0 3px rgba(57, 120, 246, 0.25);
+
+  /* Layout dimensions */
+  --sidebar-w: 240px;
+  --topbar-h: 64px;
+}
