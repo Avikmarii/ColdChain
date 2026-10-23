@@ -20,7 +20,11 @@ export function ensureShipmentTransitFields(s) {
   // Status mapping
   const transitStatus =
     s.transitStatus ||
-    (s.disposition
+    (s.status === "Completed"
+      ? "COMPLETED"
+      : s.status === "Cancelled"
+      ? "CANCELLED"
+      : s.disposition
       ? "ARRIVED"
       : s.status === "Accepted" || s.status === "Quarantined" || s.status === "Rejected"
       ? "ARRIVED"
@@ -63,7 +67,7 @@ export function ensureShipmentTransitFields(s) {
   const progressPct =
     typeof s.progressPct === "number"
       ? s.progressPct
-      : transitStatus === "ARRIVED"
+      : transitStatus === "ARRIVED" || transitStatus === "COMPLETED"
       ? 100
       : transitStatus === "IN_TRANSIT"
       ? 65
@@ -336,6 +340,74 @@ function shipmentReducer(state, action) {
       return { ...state, shipments: nextShipments };
     }
 
+    case "MARK_TRIP_COMPLETED": {
+      const { shipmentId, notes, location } = action.payload;
+      const nowIso = new Date().toISOString();
+
+      nextShipments = state.shipments.map((s) => {
+        if (s.id !== shipmentId) return s;
+
+        const activity = Array.isArray(s.activity) ? [...s.activity] : [];
+        activity.unshift({
+          at: nowIso,
+          text: `Trip marked Completed by driver and archived to history.${notes ? ` Note: ${notes}` : ""}`,
+          provenance: "driver-reported"
+        });
+
+        return {
+          ...s,
+          status: "Completed",
+          transitStatus: "COMPLETED",
+          progressPct: 100,
+          completedAt: nowIso,
+          currentLocation: location || `${s.destination} Receiving Bay`,
+          activity,
+          updatedAt: nowIso
+        };
+      });
+
+      try {
+        localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(nextShipments));
+      } catch (e) {
+        console.warn("Could not write shipments to localStorage", e);
+      }
+      return { ...state, shipments: nextShipments };
+    }
+
+    case "MARK_TRIP_CANCELLED": {
+      const { shipmentId, reason, notes } = action.payload;
+      const nowIso = new Date().toISOString();
+
+      nextShipments = state.shipments.map((s) => {
+        if (s.id !== shipmentId) return s;
+
+        const activity = Array.isArray(s.activity) ? [...s.activity] : [];
+        activity.unshift({
+          at: nowIso,
+          text: `Trip marked Cancelled by driver (${reason || "Operational cancellation"}) and archived to history.${notes ? ` Note: ${notes}` : ""}`,
+          provenance: "driver-reported"
+        });
+
+        return {
+          ...s,
+          status: "Cancelled",
+          transitStatus: "CANCELLED",
+          cancellationReason: reason || "Operational cancellation",
+          cancellationNotes: notes || "",
+          cancelledAt: nowIso,
+          activity,
+          updatedAt: nowIso
+        };
+      });
+
+      try {
+        localStorage.setItem(SHIPMENTS_STORAGE_KEY, JSON.stringify(nextShipments));
+      } catch (e) {
+        console.warn("Could not write shipments to localStorage", e);
+      }
+      return { ...state, shipments: nextShipments };
+    }
+
     case "RECORD_DISPOSITION": {
       const { shipmentId, disposition, inspectorName, notes, criteria, timestamp } = action.payload;
       const nowIso = timestamp || new Date().toISOString();
@@ -549,6 +621,54 @@ export function ShipmentProvider({ children }) {
     }
   };
 
+  const markTripCompleted = async (shipmentId, data = {}) => {
+    dispatch({
+      type: "MARK_TRIP_COMPLETED",
+      payload: { shipmentId, ...data }
+    });
+
+    try {
+      const res = await api.updateDriverStatus({
+        shipmentId,
+        transitStatus: "COMPLETED",
+        progressPct: 100,
+        currentLocation: data.location || "Receiving Destination"
+      });
+      if (res && (res.shipment || res.data)) {
+        dispatch({
+          type: "UPDATE_SHIPMENT",
+          payload: { originalId: shipmentId, updatedShipment: res.shipment || res.data }
+        });
+      }
+    } catch (err) {
+      console.warn("Backend mark completed sync fallback to local state:", err);
+    }
+  };
+
+  const markTripCancelled = async (shipmentId, data = {}) => {
+    dispatch({
+      type: "MARK_TRIP_CANCELLED",
+      payload: { shipmentId, ...data }
+    });
+
+    try {
+      const res = await api.updateDriverStatus({
+        shipmentId,
+        transitStatus: "CANCELLED",
+        progressPct: 0,
+        currentLocation: data.location || "Trip Cancelled"
+      });
+      if (res && (res.shipment || res.data)) {
+        dispatch({
+          type: "UPDATE_SHIPMENT",
+          payload: { originalId: shipmentId, updatedShipment: res.shipment || res.data }
+        });
+      }
+    } catch (err) {
+      console.warn("Backend mark cancelled sync fallback to local state:", err);
+    }
+  };
+
   const recordDisposition = async (shipmentId, dispositionData) => {
     dispatch({
       type: "RECORD_DISPOSITION",
@@ -611,6 +731,8 @@ export function ShipmentProvider({ children }) {
     setPersona,
     recordDriverIncident,
     updateTransitStatus,
+    markTripCompleted,
+    markTripCancelled,
     recordDisposition,
     resetDemoData
   };

@@ -16,21 +16,37 @@ import {
   Radio,
   Flame,
   Snowflake,
-  ExternalLink
+  ExternalLink,
+  Navigation,
+  Check,
+  X
 } from "lucide-react";
 import { useShipments } from "../../context/ShipmentContext";
 import ProvenanceBanner from "../../components/common/ProvenanceBanner";
+import { openInGoogleMaps, getShipmentGoogleMapsUrl, FLAGSHIP_BANGALORE_ROUTE } from "../../utils/googleMaps";
 
 export default function DriverCockpit() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getShipmentById, recordDriverIncident, updateTransitStatus, addToast } = useShipments();
+  const {
+    getShipmentById,
+    recordDriverIncident,
+    updateTransitStatus,
+    markTripCompleted,
+    markTripCancelled,
+    addToast
+  } = useShipments();
 
   const shipment = getShipmentById(id);
 
   const [customNote, setCustomNote] = useState("");
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [showHandoverModal, setShowHandoverModal] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [completionNotes, setCompletionNotes] = useState("");
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState("Mechanical reefer failure");
+  const [cancellationNotes, setCancellationNotes] = useState("");
   const [selectedMilestone, setSelectedMilestone] = useState(null);
 
   if (!shipment) {

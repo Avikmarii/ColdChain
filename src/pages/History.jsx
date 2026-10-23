@@ -50,10 +50,12 @@ export default function History() {
         `${s.origin} to ${s.destination}`.toLowerCase().includes(q);
 
       // Status filter
-      const matchesStatus = statusFilter === "ALL" || s.status === statusFilter;
-
-      // Category filter
-      const matchesCategory = categoryFilter === "ALL" || s.category === categoryFilter;
+      const matchesStatus =
+        statusFilter === "ALL" ||
+        s.status === statusFilter ||
+        (statusFilter === "Completed" && (s.transitStatus === "COMPLETED" || s.status === "Completed" || s.status === "Accepted")) ||
+        (statusFilter === "Cancelled" && (s.transitStatus === "CANCELLED" || s.status === "Cancelled")) ||
+        (statusFilter === "In Transit" && (s.transitStatus === "IN_TRANSIT" || s.status === "In Transit"));
 
       return matchesSearch && matchesStatus && matchesCategory;
     });
@@ -213,9 +215,13 @@ export default function History() {
               style={{ width: "auto", minWidth: 140, height: 36, fontSize: 13, cursor: "pointer" }}
             >
               <option value="ALL">All Statuses</option>
+              <option value="Completed">Completed Trips</option>
+              <option value="Cancelled">Cancelled Trips</option>
+              <option value="In Transit">In Transit</option>
               <option value="Draft">Draft</option>
               <option value="Analyzed">Analyzed</option>
               <option value="Recommended">Recommended</option>
+              <option value="Accepted">Accepted by Receiver</option>
               <option value="No Feasible Route">No Feasible Route</option>
             </select>
 
