@@ -38,24 +38,74 @@ export default function History() {
   const [importFeedback, setImportFeedback] = useState(null); // { message, skippedRows: [] }
   const [showClearImportedModal, setShowClearImportedModal] = useState(false);
 
+  // Counts for quick tabs
+  const counts = useMemo(() => {
+    const list = state.shipments || [];
+    let completed = 0;
+    let cancelled = 0;
+    let inTransit = 0;
+    list.forEach((s) => {
+      if (!s) return;
+      if (s.transitStatus === "COMPLETED" || s.status === "Completed" || s.status === "Accepted") {
+        completed++;
+      } else if (s.transitStatus === "CANCELLED" || s.status === "Cancelled") {
+        cancelled++;
+      } else if (s.transitStatus === "IN_TRANSIT" || s.status === "In Transit") {
+        inTransit++;
+      }
+    });
+    return { all: list.length, completed, cancelled, inTransit };
+  }, [state.shipments]);
+
   // Filtered shipments
   const filteredShipments = useMemo(() => {
-    return state.shipments.filter((s) => {
+    const list = state.shipments || [];
+    return list.filter((s) => {
+      if (!s) return false;
+
       // Search filter
       const q = searchQuery.toLowerCase().trim();
+      const idStr = String(s.id || "").toLowerCase();
+      const nameStr = String(s.name || "").toLowerCase();
+      const routeStr = `${s.origin || ""} to ${s.destination || ""}`.toLowerCase();
+      const reasonStr = String(s.cancellationReason || "").toLowerCase();
+      const driverStr = String(s.assignedDriver || "").toLowerCase();
       const matchesSearch =
         !q ||
-        s.id.toLowerCase().includes(q) ||
-        s.name.toLowerCase().includes(q) ||
-        `${s.origin} to ${s.destination}`.toLowerCase().includes(q);
+        idStr.includes(q) ||
+        nameStr.includes(q) ||
+        routeStr.includes(q) ||
+        reasonStr.includes(q) ||
+        driverStr.includes(q);
 
       // Status filter
-      const matchesStatus =
-        statusFilter === "ALL" ||
-        s.status === statusFilter ||
-        (statusFilter === "Completed" && (s.transitStatus === "COMPLETED" || s.status === "Completed" || s.status === "Accepted")) ||
-        (statusFilter === "Cancelled" && (s.transitStatus === "CANCELLED" || s.status === "Cancelled")) ||
-        (statusFilter === "In Transit" && (s.transitStatus === "IN_TRANSIT" || s.status === "In Transit"));
+      const isCompleted =
+        s.transitStatus === "COMPLETED" ||
+        s.status === "Completed" ||
+        s.status === "Accepted";
+      const isCancelled =
+        s.transitStatus === "CANCELLED" ||
+        s.status === "Cancelled";
+      const isInTransit =
+        s.transitStatus === "IN_TRANSIT" ||
+        s.status === "In Transit";
+
+      let matchesStatus = true;
+      if (statusFilter === "ALL") {
+        matchesStatus = true;
+      } else if (statusFilter === "Completed") {
+        matchesStatus = isCompleted;
+      } else if (statusFilter === "Cancelled") {
+        matchesStatus = isCancelled;
+      } else if (statusFilter === "In Transit") {
+        matchesStatus = isInTransit;
+      } else {
+        matchesStatus = s.status === statusFilter;
+      }
+
+      // Category filter
+      const matchesCategory =
+        categoryFilter === "ALL" || s.category === categoryFilter;
 
       return matchesSearch && matchesStatus && matchesCategory;
     });
@@ -178,6 +228,50 @@ export default function History() {
       <div className="cc-history-layout" style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 24, alignItems: "start" }}>
         {/* Left Column: Filter Bar & Table */}
         <div>
+          {/* Quick status tabs for direct filter matching user workflow */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
+            <button
+              type="button"
+              className={`cc-btn cc-btn-sm ${statusFilter === "ALL" ? "cc-btn-primary" : "cc-btn-secondary"}`}
+              onClick={() => setStatusFilter("ALL")}
+              style={{ borderRadius: 20, padding: "5px 14px" }}
+            >
+              All Records ({counts.all})
+            </button>
+            <button
+              type="button"
+              className={`cc-btn cc-btn-sm ${statusFilter === "Completed" ? "cc-btn-primary" : "cc-btn-secondary"}`}
+              onClick={() => setStatusFilter("Completed")}
+              style={{
+                borderRadius: 20,
+                padding: "5px 14px",
+                ...(statusFilter === "Completed" ? { background: "var(--success)" } : {})
+              }}
+            >
+              Completed Trips ({counts.completed})
+            </button>
+            <button
+              type="button"
+              className={`cc-btn cc-btn-sm ${statusFilter === "Cancelled" ? "cc-btn-primary" : "cc-btn-secondary"}`}
+              onClick={() => setStatusFilter("Cancelled")}
+              style={{
+                borderRadius: 20,
+                padding: "5px 14px",
+                ...(statusFilter === "Cancelled" ? { background: "var(--danger)" } : {})
+              }}
+            >
+              Trips Cancelled ({counts.cancelled})
+            </button>
+            <button
+              type="button"
+              className={`cc-btn cc-btn-sm ${statusFilter === "In Transit" ? "cc-btn-primary" : "cc-btn-secondary"}`}
+              onClick={() => setStatusFilter("In Transit")}
+              style={{ borderRadius: 20, padding: "5px 14px" }}
+            >
+              In Transit ({counts.inTransit})
+            </button>
+          </div>
+
           {/* Filter Bar */}
           <div
             className="cc-card"
@@ -287,88 +381,132 @@ export default function History() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredShipments.map((s) => (
-                        <tr
-                          key={s.id}
-                          className="cc-table-row-clickable"
-                          onClick={() => navigate(`/shipments/${s.id}`)}
-                        >
-                          <td>
-                            <CopyId id={s.id} />
-                          </td>
-                          <td style={{ fontWeight: 600 }}>{s.name}</td>
-                          <td style={{ color: "var(--text-secondary)" }}>
-                            {s.origin} → {s.destination}
-                          </td>
-                          <td>{s.category}</td>
-                          <td>
-                            <StatusBadge status={s.status} />
-                          </td>
-                          <td style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                            {s.departureDateTime?.slice(0, 10) || s.createdAt?.slice(0, 10)}
-                          </td>
-                          <td>
-                            <span
-                              className={`cc-badge ${
-                                s.source === "imported"
-                                  ? "cc-badge-provenance-imported"
+                      {filteredShipments.map((s) => {
+                        const displayStatus =
+                          s.transitStatus === "COMPLETED"
+                            ? "Completed"
+                            : s.transitStatus === "CANCELLED"
+                            ? "Cancelled"
+                            : s.status;
+
+                        const dateDisplay =
+                          s.completedAt
+                            ? `Completed ${new Date(s.completedAt).toLocaleDateString([], { month: "short", day: "numeric" })}`
+                            : s.cancelledAt
+                            ? `Cancelled ${new Date(s.cancelledAt).toLocaleDateString([], { month: "short", day: "numeric" })}`
+                            : s.departureDateTime?.slice(0, 10) || s.createdAt?.slice(0, 10) || "—";
+
+                        return (
+                          <tr
+                            key={s.id}
+                            className="cc-table-row-clickable"
+                            onClick={() => navigate(`/shipments/${s.id}`)}
+                          >
+                            <td>
+                              <CopyId id={s.id} />
+                            </td>
+                            <td>
+                              <div style={{ fontWeight: 600 }}>{s.name}</div>
+                              {s.cancellationReason && (
+                                <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 2 }}>
+                                  Reason: {s.cancellationReason}
+                                </div>
+                              )}
+                            </td>
+                            <td style={{ color: "var(--text-secondary)" }}>
+                              {s.origin} → {s.destination}
+                            </td>
+                            <td>{s.category}</td>
+                            <td>
+                              <StatusBadge status={displayStatus} />
+                            </td>
+                            <td style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                              {dateDisplay}
+                            </td>
+                            <td>
+                              <span
+                                className={`cc-badge ${
+                                  s.source === "imported"
+                                    ? "cc-badge-provenance-imported"
+                                    : s.isDemoRecord
+                                    ? "cc-badge-provenance-demo"
+                                    : "cc-badge-provenance-simulated"
+                                }`}
+                              >
+                                {s.source === "imported"
+                                  ? "User-imported (unverified)"
                                   : s.isDemoRecord
-                                  ? "cc-badge-provenance-demo"
-                                  : "cc-badge-provenance-simulated"
-                              }`}
-                            >
-                              {s.source === "imported"
-                                ? "User-imported (unverified)"
-                                : s.isDemoRecord
-                                ? "Demo"
-                                : "User-defined (unverified)"}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
+                                  ? "Demo"
+                                  : "User-defined (unverified)"}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
 
                 {/* Mobile Card List */}
                 <div className="cc-mobile-card-list">
-                  {filteredShipments.map((s) => (
-                    <div
-                      key={s.id}
-                      className="cc-mobile-shipment-card"
-                      onClick={() => navigate(`/shipments/${s.id}`)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <CopyId id={s.id} />
-                        <StatusBadge status={s.status} />
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: 15 }}>{s.name}</div>
-                        <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>
-                          {s.origin} → {s.destination} • {s.category}
+                  {filteredShipments.map((s) => {
+                    const displayStatus =
+                      s.transitStatus === "COMPLETED"
+                        ? "Completed"
+                        : s.transitStatus === "CANCELLED"
+                        ? "Cancelled"
+                        : s.status;
+
+                    const dateDisplay =
+                      s.completedAt
+                        ? `Completed ${new Date(s.completedAt).toLocaleDateString([], { month: "short", day: "numeric" })}`
+                        : s.cancelledAt
+                        ? `Cancelled ${new Date(s.cancelledAt).toLocaleDateString([], { month: "short", day: "numeric" })}`
+                        : s.departureDateTime?.slice(0, 10) || s.createdAt?.slice(0, 10) || "—";
+
+                    return (
+                      <div
+                        key={s.id}
+                        className="cc-mobile-shipment-card"
+                        onClick={() => navigate(`/shipments/${s.id}`)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <CopyId id={s.id} />
+                          <StatusBadge status={displayStatus} />
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: 15 }}>{s.name}</div>
+                          <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>
+                            {s.origin} → {s.destination} • {s.category}
+                          </div>
+                          {s.cancellationReason && (
+                            <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 4 }}>
+                              Reason: {s.cancellationReason}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, color: "var(--text-muted)" }}>
+                          <span>{dateDisplay}</span>
+                          <span
+                            className={`cc-badge ${
+                              s.source === "imported"
+                                ? "cc-badge-provenance-imported"
+                                : s.isDemoRecord
+                                ? "cc-badge-provenance-demo"
+                                : "cc-badge-provenance-simulated"
+                            }`}
+                          >
+                            {s.source === "imported"
+                              ? "User-imported (unverified)"
+                              : s.isDemoRecord
+                              ? "Demo"
+                              : "User-defined (unverified)"}
+                          </span>
                         </div>
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, color: "var(--text-muted)" }}>
-                        <span>{s.departureDateTime?.slice(0, 10) || s.createdAt?.slice(0, 10)}</span>
-                        <span
-                          className={`cc-badge ${
-                            s.source === "imported"
-                              ? "cc-badge-provenance-imported"
-                              : s.isDemoRecord
-                              ? "cc-badge-provenance-demo"
-                              : "cc-badge-provenance-simulated"
-                          }`}
-                        >
-                          {s.source === "imported"
-                            ? "User-imported (unverified)"
-                            : s.isDemoRecord
-                            ? "Demo"
-                            : "User-defined (unverified)"}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </>
             )}

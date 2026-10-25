@@ -119,6 +119,28 @@ export default function DriverCockpit() {
     navigate(`/receiving/${encodeURIComponent(shipment.id)}`);
   };
 
+  const handleConfirmComplete = (e) => {
+    e?.preventDefault();
+    markTripCompleted(shipment.id, {
+      notes: completionNotes.trim(),
+      location: `${shipment.destination} Receiving Bay`
+    });
+    addToast(`Trip marked Completed and archived to History.`);
+    setShowCompleteModal(false);
+    navigate("/history");
+  };
+
+  const handleConfirmCancel = (e) => {
+    e?.preventDefault();
+    markTripCancelled(shipment.id, {
+      reason: cancellationReason,
+      notes: cancellationNotes.trim()
+    });
+    addToast(`Trip cancelled and moved to History.`);
+    setShowCancelModal(false);
+    navigate("/history");
+  };
+
   // Temperature meter needle position (scale: 0C = 0%, 12C = 100%)
   const clampedTemp = Math.max(0, Math.min(12, currentTemp));
   const meterPct = (clampedTemp / 12) * 100;
@@ -168,6 +190,114 @@ export default function DriverCockpit() {
           <div className="cc-cockpit-driver-label">ASSIGNED VEHICLE & DRIVER</div>
           <div className="cc-cockpit-driver-name">{shipment.assignedDriver || "Fleet Navigator (Assigned)"}</div>
           <div className="cc-cockpit-driver-sub">Reefer Unit: Carrier Transicold 35X • GPS: Simulated Corridor</div>
+        </div>
+      </div>
+
+      {/* Driver In-Transit Action & Status Bar */}
+      <div
+        className="cc-card"
+        style={{
+          padding: "12px 16px",
+          marginBottom: 16,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 12
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          {/* Trip Status Indicator */}
+          <span
+            className={`cc-badge ${
+              shipment.transitStatus === "COMPLETED" || shipment.status === "Completed"
+                ? "cc-badge-recommended"
+                : shipment.transitStatus === "CANCELLED" || shipment.status === "Cancelled"
+                ? "cc-badge-no-feasible"
+                : shipment.transitStatus === "IN_TRANSIT"
+                ? "cc-badge-analyzed"
+                : "cc-badge-draft"
+            }`}
+            style={{ fontSize: 13, padding: "6px 12px" }}
+          >
+            {shipment.transitStatus === "COMPLETED" || shipment.status === "Completed" ? (
+              <>
+                <CheckCircle2 size={14} /> Completed (History)
+              </>
+            ) : shipment.transitStatus === "CANCELLED" || shipment.status === "Cancelled" ? (
+              <>
+                <X size={14} /> Cancelled (History)
+              </>
+            ) : (
+              <>
+                <Truck size={14} /> Active In-Transit
+              </>
+            )}
+          </span>
+
+          {shipment.cancellationReason && (
+            <span style={{ fontSize: 12, color: "var(--danger)" }}>
+              Reason: {shipment.cancellationReason}
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {/* Google Maps Live Route Navigation */}
+          <button
+            type="button"
+            className="cc-btn cc-btn-primary cc-btn-sm"
+            onClick={() => {
+              openInGoogleMaps(shipment);
+              addToast("Opening Google Maps live corridor navigation...");
+            }}
+            title="Open complete route and navigation directly in Google Maps"
+          >
+            <Navigation size={14} />
+            <span>Open in Google Maps</span>
+            <ExternalLink size={12} />
+          </button>
+
+          {/* If Active, allow Complete or Cancel */}
+          {shipment.transitStatus !== "COMPLETED" &&
+            shipment.status !== "Completed" &&
+            shipment.transitStatus !== "CANCELLED" &&
+            shipment.status !== "Cancelled" && (
+              <>
+                <button
+                  type="button"
+                  className="cc-btn cc-btn-secondary cc-btn-sm"
+                  style={{ color: "var(--success)", borderColor: "var(--success)" }}
+                  onClick={() => setShowCompleteModal(true)}
+                  title="Mark this trip completed and move to History"
+                >
+                  <Check size={14} />
+                  <span>Mark Completed</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="cc-btn cc-btn-ghost cc-btn-sm"
+                  style={{ color: "var(--danger)" }}
+                  onClick={() => setShowCancelModal(true)}
+                  title="Cancel trip and archive to History"
+                >
+                  <X size={14} />
+                  <span>Cancel Trip</span>
+                </button>
+              </>
+            )}
+
+          {/* Link to History */}
+          <button
+            type="button"
+            className="cc-btn cc-btn-secondary cc-btn-sm"
+            onClick={() => navigate("/history")}
+            title="View complete evaluation history"
+          >
+            <FileText size={14} />
+            <span>History Records</span>
+          </button>
         </div>
       </div>
 
@@ -605,6 +735,134 @@ export default function DriverCockpit() {
                 </button>
                 <button type="submit" className="cc-btn cc-btn-primary">
                   Save to Manifest Log
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Complete Trip Modal */}
+      {showCompleteModal && (
+        <div className="cc-modal-overlay" role="dialog" aria-modal="true">
+          <div className="cc-modal-card" style={{ maxWidth: 460 }}>
+            <div className="cc-modal-header">
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <CheckCircle2 size={20} style={{ color: "var(--success)" }} />
+                <h2 className="cc-modal-title">Complete Delivery Trip</h2>
+              </div>
+              <button
+                type="button"
+                className="cc-modal-close-btn"
+                onClick={() => setShowCompleteModal(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleConfirmComplete}>
+              <div style={{ padding: "18px 20px" }}>
+                <p style={{ fontSize: 13.5, color: "var(--text-secondary)", marginBottom: 14 }}>
+                  You are marking shipment <strong className="cc-mono">{shipment.id}</strong> ({shipment.name}) as completed. This will archive the manifest to <strong>History</strong>.
+                </p>
+
+                <label className="cc-form-label" htmlFor="driver-complete-notes">
+                  Delivery Sign-off Notes (Optional):
+                </label>
+                <textarea
+                  id="driver-complete-notes"
+                  className="cc-input"
+                  style={{ width: "100%", height: 80, resize: "vertical" }}
+                  placeholder="e.g. Unloaded at clinic receiving bay; refrigeration maintained."
+                  value={completionNotes}
+                  onChange={(e) => setCompletionNotes(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="cc-modal-footer">
+                <button
+                  type="button"
+                  className="cc-btn cc-btn-secondary"
+                  onClick={() => setShowCompleteModal(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="cc-btn cc-btn-primary" style={{ background: "var(--success)" }}>
+                  <Check size={16} /> Confirm & Move to History
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Trip Modal */}
+      {showCancelModal && (
+        <div className="cc-modal-overlay" role="dialog" aria-modal="true">
+          <div className="cc-modal-card" style={{ maxWidth: 460 }}>
+            <div className="cc-modal-header">
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <AlertTriangle size={20} style={{ color: "var(--danger)" }} />
+                <h2 className="cc-modal-title">Cancel Delivery Trip</h2>
+              </div>
+              <button
+                type="button"
+                className="cc-modal-close-btn"
+                onClick={() => setShowCancelModal(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleConfirmCancel}>
+              <div style={{ padding: "18px 20px" }}>
+                <p style={{ fontSize: 13.5, color: "var(--text-secondary)", marginBottom: 14 }}>
+                  Cancelling trip <strong className="cc-mono">{shipment.id}</strong> will abort in-transit telemetry and archive this manifest directly to <strong>History</strong> with cancellation audit flags.
+                </p>
+
+                <div style={{ marginBottom: 14 }}>
+                  <label className="cc-form-label" htmlFor="driver-cancel-reason">
+                    Cancellation Reason:
+                  </label>
+                  <select
+                    id="driver-cancel-reason"
+                    className="cc-input"
+                    value={cancellationReason}
+                    onChange={(e) => setCancellationReason(e.target.value)}
+                  >
+                    <option value="Mechanical reefer failure">Mechanical reefer failure</option>
+                    <option value="Severe roadblock / road closed">Severe roadblock / road closed</option>
+                    <option value="Vehicle mechanical breakdown">Vehicle mechanical breakdown</option>
+                    <option value="Consignee hospital emergency postponement">Consignee hospital emergency postponement</option>
+                    <option value="Severe thermal excursion breach">Severe thermal excursion breach</option>
+                    <option value="Other operational cancellation">Other operational cancellation</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="cc-form-label" htmlFor="driver-cancel-notes">
+                    Incident Details / Dispatch Notes:
+                  </label>
+                  <textarea
+                    id="driver-cancel-notes"
+                    className="cc-input"
+                    style={{ width: "100%", height: 70, resize: "vertical" }}
+                    placeholder="Provide details about the cancellation..."
+                    value={cancellationNotes}
+                    onChange={(e) => setCancellationNotes(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="cc-modal-footer">
+                <button
+                  type="button"
+                  className="cc-btn cc-btn-secondary"
+                  onClick={() => setShowCancelModal(false)}
+                >
+                  Keep Active
+                </button>
+                <button type="submit" className="cc-btn cc-btn-primary" style={{ background: "var(--danger)" }}>
+                  Confirm Cancellation & Move to History
                 </button>
               </div>
             </form>
